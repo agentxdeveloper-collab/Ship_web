@@ -1,0 +1,1543 @@
+{% extends "base.html" %}
+{% block content %}
+<div class="main-container">
+  <!-- 페이지 헤더 -->
+  <div class="page-header">
+    <div class="header-left">
+      <h1 class="page-title">등록된 배 목록</h1>
+      <!-- ship-count 기존 위치 제거 -->
+      <!-- <span class="ship-count">총 <span id="shipCount">{{ boats|length }}</span>척</span> -->
+    </div>
+    <div class="header-right">
+      <a href="{{ url_for('views.download_excel') }}" class="btn-header">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="7,10 12,15 17,10"/>
+          <line x1="12" y1="15" x2="12" y2="3"/>
+        </svg>
+        다운로드
+      </a>
+      <button type="button" id="upload-btn" class="btn-header">
+        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+          <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+          <polyline points="17,8 12,3 7,8"/>
+          <line x1="12" y1="3" x2="12" y2="15"/>
+        </svg>
+        업로드
+      </button>
+      <input type="file" id="excel-upload-input" style="display: none;" accept=".xlsx, .xls" name="excel_file">
+    </div>
+  </div>
+
+  <!-- 탭 컨텐츠 -->
+  <div class="tab-content-container">
+    <!-- 목록보기 탭 -->
+    <div id="listTab" class="tab-content active">
+      <!-- 필터 및 검색 -->
+      <div class="filters-section">
+        <div class="search-box">
+          <svg class="search-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <circle cx="11" cy="11" r="8"/>
+            <path d="M21 21L16.65 16.65"/>
+          </svg>
+          <input type="text" id="searchInput" placeholder="배 이름, 지역으로 검색..." class="search-input">
+        </div>
+        <div class="filter-group">
+          <select id="regionFilter" class="filter-select">
+            <option value="">지역</option>
+          </select>
+          <select id="portFilter" class="filter-select">
+            <option value="">전체 항구</option>
+          </select>
+          <button type="button" class="btn-reset" onclick="resetFilters()">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="1,4 1,10 7,10"/>
+              <path d="M3.51 15a9 9 0 1 0 2.13-9.36L1 10"/>
+            </svg>
+            초기화
+          </button>
+        </div>
+      </div>
+
+  <!-- 탭 메뉴와 액션 버튼들 -->
+  <div class="tab-actions-container">
+        <div class="tab-menu">
+          <button type="button" class="tab-btn active" onclick="showTab('list')">
+            <!-- 목록보기 아이콘 -->
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="8" y1="6" x2="21" y2="6"/>
+              <line x1="8" y1="12" x2="21" y2="12"/>
+              <line x1="8" y1="18" x2="21" y2="18"/>
+              <line x1="3" y1="6" x2="3.01" y2="6"/>
+              <line x1="3" y1="12" x2="3.01" y2="12"/>
+              <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            목록보기
+          </button>
+          <button type="button" class="tab-btn" onclick="window.location.href='{{ url_for('views.map_page') }}'">
+            <!-- 지도보기 아이콘 -->
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2 1,6"/>
+              <line x1="8" y1="2" x2="8" y2="18"/>
+              <line x1="16" y1="6" x2="16" y2="22"/>
+            </svg>
+            지도보기
+          </button>
+          <!-- 탭 옆 총 척수 표시 (이동된 위치) -->
+          <span class="ship-count-inline">총 <span id="shipCount">{{ boats|length }}</span>척</span>
+        </div>
+
+        <!-- 액션 버튼들 (오른쪽) -->
+        <div class="action-right">
+          <a href="{{ url_for('views.register') }}" class="btn-action success open-register-modal">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <line x1="12" y1="5" x2="12" y2="19"/>
+              <line x1="5" y1="12" x2="19" y2="12"/>
+            </svg>
+            새 배 등록
+          </a>
+          <button type="button" class="btn-action secondary" id="edit-selected">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M11 4H4a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h14a2 2 0 0 0 2-2v-7"/>
+              <path d="M18.5 2.5a2.121 2.121 0 0 1 3 3L12 15l-4 1 1-4 9.5-9.5z"/>
+            </svg>
+            선택 수정
+          </button>
+          <button type="button" class="btn-action danger" id="delete-selected">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <polyline points="3,6 5,6 21,6"/>
+              <path d="M19,6v14a2 2 0 0 1-2,2H7a2 2 0 0 1-2-2V6m3,0V4a2 2 0 0 1,2,2h4a2 2 0 0 1,2,2v2"/>
+            </svg>
+            선택 삭제
+          </button>
+        </div>
+      </div>
+
+      <!-- 선박 목록 테이블 -->
+      <form id="delete-form" method="post" action="{{ url_for('views.delete_boats') }}">
+        <div class="table-container">
+        <table id="ships-table" class="modern-table">
+          <thead>
+            <tr>
+              <th class="checkbox-col">
+                <input type="checkbox" id="select-all" class="table-checkbox">
+              </th>
+              <th class="number-col">No</th>
+              <th class="region-col">지역</th>
+              <th class="port-col">항구</th>
+              <th class="ship-col">등록된 배</th>
+              <th class="url-col">URL 링크</th>
+              <th class="note-col">비고</th>
+            </tr>
+          </thead>
+          <tbody id="shipTableBody">
+            {% for b in boats %}
+            <tr class="ship-row" data-region="{{ b.city }}" data-port="{{ b.port }}" data-name="{{ b.name }}" data-url="{{ b.url }}" data-note="{{ b.note if b.note else '' }}">
+              <td class="checkbox-col">
+                <input type="checkbox" name="delete_ids" value="{{ b.id }}" class="table-checkbox row-check">
+              </td>
+              <td class="number-col">{{ loop.index }}</td>
+              <td class="region-col">
+                <span class="region-badge">{{ b.city }}</span>
+              </td>
+              <td class="port-col">{{ b.port }}</td>
+              <td class="ship-col">
+                <div class="ship-info">
+                  <span class="ship-name">{{ b.name }}</span>
+                </div>
+              </td>
+              <td class="url-col">
+                <a href="{{ b.url }}" target="_blank" class="detail-link">
+                  URL 링크
+                  <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                  </svg>
+                </a>
+              </td>
+              <td class="note-col">{{ b.note if b.note is defined else '' }}</td>
+            </tr>
+            {% else %}
+            <tr class="empty-row">
+              <td colspan="7" class="empty-cell">
+                <div class="empty-state">
+                  <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                    <path d="M20 21v-2a4 4 0 0 0-4-4H8a4 4 0 0 0-4 4v2"/>
+                    <circle cx="12" cy="7" r="4"/>
+                  </svg>
+                  <p>등록된 배가 없습니다</p>
+                  <a href="{{ url_for('views.register') }}" class="btn-action primary open-register-modal">첫 번째 배 등록하기</a>
+                </div>
+              </td>
+            </tr>
+            {% endfor %}
+          </tbody>
+        </table>
+      </div>
+      </form>
+    </div>
+
+    <!-- 지도보기 탭 -->
+    <div id="mapTab" class="tab-content hidden">
+      <div class="map-container">
+        <div id="map" class="map-view"></div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<style>
+/* 메인 컨테이너 */
+.main-container {
+  max-width: 1280px;
+  margin: 0 auto;
+  padding: 0 20px;
+}
+
+/* 페이지 헤더 */
+.page-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-top: 10px;
+  margin-bottom: 0px;
+  padding-bottom: 8px; /* 16px -> 8px */
+}
+
+/* 기존 .ship-count 사용 안 함 -> 필요시 제거 가능 */
+/* 테이블 열 크기 */
+.checkbox-col {
+  width: 23px;
+  min-width: 23px;
+  max-width: 23px;
+  text-align: center;
+}
+
+.number-col {
+  width: 20px;
+  min-width: 20px;
+  max-width: 20px;
+  text-align: center;
+}
+
+.region-col {
+  width: 40px;
+  min-width: 40px;
+  max-width: 40px;
+}
+
+.port-col {
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+}
+
+.ship-col {
+  width: 100px;
+  min-width: 100px;
+  max-width: 100px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.url-col {
+  width: 80px;
+  min-width: 80px;
+  max-width: 80px;
+  text-align: center;
+}
+
+.note-col {
+  width: 300px;
+  min-width: 300px;
+  max-width: 300px;
+  text-align: left;
+  color: #64748b;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.ship-count {
+  padding: 4px 8px;
+  background: #e2e8f0;
+  color: #64748b;
+  border-radius: 12px;
+  font-size: 13px;
+  font-weight: 500;
+}
+
+.header-right {
+  display: flex;
+  gap: 8px;
+}
+
+/* 헤더 버튼 스타일 */
+.btn-header {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  font-size: 13px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  background: white;
+  color: #64748b;
+}
+
+.btn-header:hover {
+  border-color: #cbd5e1;
+  background: #f8fafc;
+}
+
+/* 탭과 액션 버튼 컨테이너 */
+.tab-actions-container {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 12px; /* 16px -> 12px */
+  padding: 4px 0;      /* 12px -> 4px */
+}
+
+/* 탭 컨테이너 */
+.tab-container {
+  margin-bottom: 12px;
+  margin-top: 16px;
+}
+
+/* 탭 메뉴 */
+.tab-menu {
+  display: flex;
+  align-items: center;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 2px 4px;
+  gap: 2px; /* 추가 */
+}
+
+.tab-btn {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 14px; /* 8px 16px -> 약간 축소 */
+  border: none;
+  background: transparent;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.tab-btn.active {
+  background: white;
+  color: #1e293b;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+/* 아이콘 */
+.icon {
+  width: 16px;
+  height: 16px;
+  stroke-width: 2;
+}
+
+/* 탭 컨텐츠 */
+.tab-content-container {
+  position: relative;
+}
+
+.tab-content {
+  display: block;
+}
+
+.tab-content.hidden {
+  display: none;
+}
+
+/* 필터 섹션 */
+.filters-section {
+  display: flex;
+  gap: 10px;           /* 12 -> 10 */
+  margin-bottom: 12px; /* 16 -> 12 */
+  padding: 12px;       /* 16 -> 12 */
+  align-items: center;
+  flex-wrap: nowrap;
+  background: white;
+  border-radius: 8px;
+  border: 1px solid #e5e7eb;
+}
+
+.search-box {
+  position: relative;
+  flex: 1;
+  min-width: 300px;
+  max-width: 400px;
+  background: #f1f5f9;
+  border-radius: 8px;
+  padding: 6px 10px;
+  border: 1px solid #e2e8f0;
+}
+
+.search-icon {
+  position: absolute;
+  left: 16px;
+  top: 50%;
+  transform: translateY(-50%);
+  width: 16px;
+  height: 16px;
+  color: #9ca3af;
+  stroke-width: 2;
+  z-index: 2;
+}
+
+.search-input {
+  width: 100%;
+  padding: 12px 12px 12px 40px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  background: white;
+  transition: all 0.2s ease;
+  box-sizing: border-box;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.search-input:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-group {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  flex-shrink: 0;
+  background: #f1f5f9;
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+}
+
+.filter-select {
+  padding: 12px 32px 12px 12px;
+  border: none;
+  border-radius: 6px;
+  background: white;
+  font-size: 14px;
+  color: #374151;
+  min-width: 140px;
+  appearance: none;
+  background-image: url('data:image/svg+xml;utf8,<svg xmlns="http://www.w3.org/2000/svg" width="12" height="12" viewBox="0 0 12 12"><path d="M3 5l3 3 3-3z" fill="%23374151"/></svg>');
+  background-repeat: no-repeat;
+  background-position: right 8px center;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.filter-select:focus {
+  outline: none;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1), 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.filter-select:hover {
+  background: #fafafa;
+}
+
+.btn-reset {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 12px 16px;
+  border: none;
+  background: white;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #64748b;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  flex-shrink: 0;
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.05);
+}
+
+.btn-reset:hover {
+  background: #f8fafc;
+  color: #475569;
+}
+
+.btn-reset:active {
+  transform: translateY(1px);
+}
+
+/* 액션 섹션 */
+.table-actions {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 0;
+}
+
+.actions-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 16px;
+  padding: 12px 16px;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.action-left {
+  display: flex;
+  align-items: center;
+}
+
+.action-right {
+  display: flex;
+  gap: 8px;
+  align-items: center;
+}
+
+.btn-select-all {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 8px 12px;
+  border: 1px solid #e5e7eb;
+  background: white;
+  border-radius: 6px;
+  font-size: 14px;
+  color: #374151;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-select-all input[type="checkbox"] {
+  margin: 0;
+}
+
+/* 공통 액션 버튼 스타일 */
+.btn-action {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 12px;
+  border: none;
+  border-radius: 6px;
+  font-size: 14px;
+  font-weight: 500;
+  text-decoration: none;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.btn-action:hover {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn-action.green {
+  background: #10b981;
+  color: white;
+}
+
+.btn-action.success {
+  background: #22c55e;
+  color: white;
+}
+
+.btn-action.secondary {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-action.danger {
+  background: #ef4444;
+  color: white;
+}
+
+.btn-action.gray {
+  background: #6b7280;
+  color: white;
+}
+
+.btn-action.red {
+  background: #ef4444;
+  color: white;
+}
+
+/* 테이블 스타일 */
+.table-container {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.modern-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.modern-table th {
+  background: #f8fafc;
+  padding: 16px;
+  text-align: center;
+  font-weight: 600;
+  color: #374151;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+/* 특정 헤더만 왼쪽 정렬 */
+.modern-table th.region-col,
+.modern-table th.port-col,
+.modern-table th.ship-col {
+  text-align: left;
+}
+
+.modern-table td {
+  padding: 16px;
+  border-bottom: 1px solid #e5e7eb; /* 더 진한 회색으로 가로줄 명확하게 */
+  vertical-align: middle;
+}
+
+
+/* 홀수/짝수 행 교차 배경색 */
+.ship-row:nth-child(odd) {
+  background: #fff;
+}
+.ship-row:nth-child(even) {
+  background: #f8fafc;
+}
+
+.ship-row:hover {
+  background: #e0e7ef;
+}
+
+.ship-row:last-child td {
+  border-bottom: none;
+}
+
+/* 테이블 열 크기 */
+.checkbox-col {
+  width: 48px;
+  text-align: center;
+}
+
+.number-col {
+  width: 60px;
+  text-align: center;
+}
+
+.region-col {
+  width: 120px;
+}
+
+.port-col {
+  width: 140px;
+}
+
+.ship-col {
+  flex: 1;
+}
+
+.url-col {
+  width: 120px;
+}
+
+/* 체크박스 */
+.table-checkbox {
+  width: 16px;
+  height: 16px;
+  cursor: pointer;
+}
+
+/* 지역 뱃지 */
+.region-badge {
+  display: inline-block;
+  padding: 4px 8px;
+  background: #dbeafe;
+  color: #1e40af;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 500;
+}
+
+/* 선박 정보 */
+.ship-info {
+  display: flex;
+  flex-direction: column;
+}
+
+.ship-name {
+  font-weight: 500;
+  color: #1e293b;
+}
+
+/* 상세보기 링크 */
+.detail-link {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  color: #3b82f6;
+  text-decoration: none;
+  font-weight: 500;
+  font-size: 14px;
+  transition: color 0.2s ease;
+}
+
+.detail-link:hover {
+  color: #1d4ed8;
+  text-decoration: underline;
+}
+
+/* 빈 상태 */
+.empty-row td {
+  padding: 48px 16px;
+}
+
+.empty-state {
+  text-align: center;
+  color: #6b7280;
+}
+
+.empty-icon {
+  width: 48px;
+  height: 48px;
+  margin: 0 auto 16px;
+  color: #d1d5db;
+}
+
+.empty-state p {
+  margin: 0 0 16px;
+  font-size: 16px;
+}
+
+/* 지도 컨테이너 */
+.map-container {
+  background: white;
+  border-radius: 12px;
+  overflow: hidden;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.map-view {
+  width: 100%;
+  height: 500px;
+  border-radius: 12px;
+}
+
+  /* --- Modal styles --- */
+  .modal-overlay {
+    position: fixed;
+    inset: 0;
+    background: rgba(15, 23, 42, 0.5);
+    display: none;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+  }
+  .modal-overlay.active { display: flex; }
+
+  .modal-panel {
+    background: #fff;
+    width: 90%;
+    max-width: 840px;
+    border-radius: 12px;
+    box-shadow: 0 20px 40px rgba(0,0,0,0.25);
+    overflow: hidden;
+  }
+  .modal-header {
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    padding: 16px 20px;
+    background: #fee2e2;
+    border-bottom: 1px solid #f3f4f6;
+  }
+  .modal-header .title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1f2937;
+    flex: 1;
+  }
+  .modal-header .close-x {
+    background: transparent;
+    border: none;
+    font-size: 24px;
+    cursor: pointer;
+    color: #6b7280;
+    padding: 0;
+    width: 32px;
+    height: 32px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: 6px;
+  }
+  .modal-header .close-x:hover {
+    background: #f3f4f6;
+    color: #111827;
+  }
+  /* Icon container styles */
+  .modal-header .p-3 {
+    padding: 12px;
+  }
+  .modal-header .bg-red-500 {
+    background-color: #ef4444;
+  }
+  .modal-header .bg-gray-500 {
+    background-color: #6b7280;
+  }
+  .modal-header .rounded-xl {
+    border-radius: 12px;
+  }
+  .modal-header .text-white {
+    color: white;
+  }
+  .modal-header .size-6 {
+    width: 24px;
+    height: 24px;
+  }
+  .modal-body { padding: 20px; }
+
+  .form-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 16px;
+  }
+  .form-item label { display:block; margin-bottom:6px; color:#334155; font-weight:600; }
+  .form-item input, .form-item select, .form-item textarea {
+    width: 100%; padding: 12px; border: 1px solid #e5e7eb; border-radius: 8px; font-size: 14px; box-sizing: border-box; background:#f8fafc;
+  }
+  .form-item textarea { min-height: 120px; resize: vertical; }
+  .form-actions { display:flex; gap:8px; justify-content:flex-end; margin-top: 16px; }
+  .btn {
+    display:inline-flex; align-items:center; gap:6px; padding:10px 14px; border:none; border-radius:8px; cursor:pointer; font-weight:600;
+  }
+  .btn.cancel { background:#e5e7eb; color:#111827; }
+  .btn.submit { background:#3b82f6; color:#fff; }
+  .btn.submit:disabled { background:#9ca3af; cursor:not-allowed; opacity:0.6; }
+
+  /* Toast 알림 */
+  .toast {
+    position: fixed;
+    bottom: 30px;
+    right: 30px;
+    background: #10b981;
+    color: white;
+    padding: 14px 20px;
+    border-radius: 8px;
+    box-shadow: 0 4px 12px rgba(0,0,0,0.25);
+    font-weight: 600;
+    z-index: 2000;
+    opacity: 0;
+    transform: translateY(20px);
+    transition: opacity 0.3s ease, transform 0.3s ease;
+  }
+  .toast.show { opacity: 1; transform: translateY(0); }
+
+  @media (max-width: 768px) {
+    .form-grid { grid-template-columns: 1fr; }
+  }
+
+/* 반응형 디자인 */
+@media (max-width: 768px) {
+  .main-container {
+    padding: 0 16px;
+  }
+  
+  .page-header {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 16px;
+  }
+  
+  .header-right {
+    width: 100%;
+    justify-content: flex-start;
+  }
+  
+  .filters-section {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 12px;
+  }
+  
+  .search-box {
+    min-width: auto;
+    max-width: none;
+  }
+  
+  .filter-group {
+    flex-direction: row;
+    gap: 8px;
+  }
+  
+  .filter-select {
+    flex: 1;
+    min-width: 80px;
+  }
+  
+  .actions-section {
+    flex-direction: column;
+    gap: 12px;
+  }
+  
+  .action-left, .action-right {
+    width: 100%;
+    justify-content: center;
+  }
+  
+  .modern-table {
+    font-size: 14px;
+  }
+  
+  .modern-table th,
+  .modern-table td {
+    padding: 12px 8px;
+  }
+  
+  .tab-btn {
+    font-size: 14px;
+    padding: 10px 16px;
+  }
+  
+  .tab-menu {
+    width: 100%;
+  }
+  
+  .tab-btn {
+    flex: 1;
+  }
+}
+
+/* 기존 스타일 유지 (호환성을 위해) */
+#boats-table tbody {
+  font-size: 16px;
+}
+</style>
+
+<script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+
+<script>
+// 전역 변수
+let allShips = [];
+let map = null;
+let filteredShips = [];
+
+// 페이지 로드시 초기화
+document.addEventListener('DOMContentLoaded', function() {
+    initializeData();
+    initializeEventListeners();
+  initializeRegisterModal();
+});
+
+// 데이터 초기화
+function initializeData() {
+    // 서버에서 전달받은 데이터를 JavaScript 객체로 변환
+    const serverData = {{ boats_json|tojson }};
+    
+    allShips = serverData.map(boat => ({
+        id: boat.id,
+        region: boat.city,
+        port: boat.port,
+        name: boat.name,
+        url: boat.url,
+        note: boat.note,
+        registration_number: boat.name // 임시로 이름을 등록번호로 사용
+    }));
+    
+    filteredShips = [...allShips];
+    updateFilters();
+    renderShips(filteredShips);
+}
+
+// 탭 전환 함수
+function showTab(tabName) {
+    // 모든 탭 버튼에서 active 클래스 제거
+    document.querySelectorAll('.tab-btn').forEach(btn => btn.classList.remove('active'));
+    
+    // 모든 탭 컨텐츠 숨김
+    document.querySelectorAll('.tab-content').forEach(content => content.classList.add('hidden'));
+    
+    // 선택된 탭 버튼에 active 클래스 추가
+    event.target.classList.add('active');
+    
+    // 선택된 탭 컨텐츠 표시
+    document.getElementById(tabName + 'Tab').classList.remove('hidden');
+    
+    // 지도 탭이 선택되면 지도 초기화
+    if (tabName === 'map' && !map) {
+        setTimeout(() => initMap(), 100);
+    }
+}
+
+// 지도 초기화
+function initMap() {
+    if (map) return;
+    
+    map = L.map('map').setView([35.5, 127.5], 7);
+    
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '© OpenStreetMap contributors'
+    }).addTo(map);
+    
+    // 선박 위치 마커 추가
+    allShips.forEach(ship => {
+        const coords = getPortCoordinates(ship.port);
+        if (coords) {
+            const marker = L.marker(coords).addTo(map);
+            marker.bindPopup(`
+                <div style="text-align: center;">
+                    <h4 style="margin: 0 0 8px 0; color: #1e293b;">${ship.name}</h4>
+                    <p style="margin: 0 0 8px 0; color: #64748b;">${ship.region} ${ship.port}</p>
+                    <a href="${ship.url}" target="_blank" style="color: #3b82f6; text-decoration: none;">URL 링크 →</a>
+                </div>
+            `);
+        }
+    });
+}
+
+// 항구 좌표 데이터
+function getPortCoordinates(port) {
+    const coords = {
+        '아미도항': [35.9784, 126.5569],
+        '비응항': [35.8976, 126.4892],
+        '돌산항': [34.6893, 127.8152],
+        '국동항': [34.7344, 127.7894],
+        '소호항': [34.7234, 127.7234],
+        '선구항': [34.8456, 128.1234],
+        '평택항': [36.9981, 126.8225],
+        '고흥항': [34.6117, 127.2753],
+        // 더 많은 항구 좌표 추가 가능
+    };
+    return coords[port] || null;
+}
+
+// 선박 목록 렌더링
+function renderShips(ships) {
+    const tbody = document.getElementById('shipTableBody');
+    
+    if (ships.length === 0) {
+        tbody.innerHTML = `
+            <tr class="empty-row">
+                <td colspan="6" class="empty-cell">
+                    <div class="empty-state">
+                        <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <circle cx="12" cy="12" r="3"/>
+                            <path d="M12 1v6m0 6v6"/>
+                            <path d="m1 12 6 0m6 0 6 0"/>
+                        </svg>
+                        <p>검색 결과가 없습니다</p>
+                        <button type="button" class="btn-action primary" onclick="resetFilters()">전체 목록 보기</button>
+                    </div>
+                </td>
+            </tr>
+        `;
+    } else {
+        tbody.innerHTML = ships.map((ship, index) => `
+            <tr class="ship-row" data-region="${ship.region}" data-port="${ship.port}" data-name="${ship.name}" data-url="${ship.url}" data-note="${ship.note || ''}">
+                <td class="checkbox-col">
+                    <input type="checkbox" name="delete_ids" value="${ship.id}" class="table-checkbox row-check">
+                </td>
+                <td class="number-col">${index + 1}</td>
+                <td class="region-col">
+                    <span class="region-badge">${ship.region}</span>
+                </td>
+                <td class="port-col">${ship.port}</td>
+                <td class="ship-col">
+                    <div class="ship-info">
+                        <span class="ship-name">${ship.name}</span>
+                    </div>
+                </td>
+                <td class="url-col">
+                    <a href="${ship.url}" target="_blank" class="detail-link">
+                        URL 링크
+                        <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                            <path d="M10 6H6a2 2 0 00-2 2v10a2 2 0 002 2h10a2 2 0 002-2v-4M14 4h6m0 0v6m0-6L10 14"/>
+                        </svg>
+                    </a>
+                </td>
+                <td class="note-col">${ship.note || ''}</td>
+            </tr>
+        `).join('');
+    }
+    
+    // 선박 수 업데이트
+    document.getElementById('shipCount').textContent = ships.length;
+    
+    // 체크박스 이벤트 재설정
+    initializeCheckboxEvents();
+}
+
+// 필터 옵션 업데이트
+function updateFilters() {
+    const regions = [...new Set(allShips.map(s => s.region))].sort();
+    const ports = [...new Set(allShips.map(s => s.port))].sort();
+    
+    const regionFilter = document.getElementById('regionFilter');
+    const portFilter = document.getElementById('portFilter');
+    
+    regionFilter.innerHTML = '<option value="">지역</option>' + 
+        regions.map(r => `<option value="${r}">${r}</option>`).join('');
+    
+    portFilter.innerHTML = '<option value="">전체 항구</option>' + 
+        ports.map(p => `<option value="${p}">${p}</option>`).join('');
+}
+
+// 선박 필터링
+function filterShips() {
+    const search = document.getElementById('searchInput').value.toLowerCase().trim();
+    const region = document.getElementById('regionFilter').value;
+    const port = document.getElementById('portFilter').value;
+    
+    filteredShips = allShips.filter(ship => {
+        const matchSearch = !search || 
+            ship.name.toLowerCase().includes(search) ||
+            ship.region.toLowerCase().includes(search) ||
+            ship.port.toLowerCase().includes(search);
+            
+        const matchRegion = !region || ship.region === region;
+        const matchPort = !port || ship.port === port;
+        
+        return matchSearch && matchRegion && matchPort;
+    });
+    
+    renderShips(filteredShips);
+}
+
+// 필터 초기화
+function resetFilters() {
+    document.getElementById('searchInput').value = '';
+    document.getElementById('regionFilter').value = '';
+    document.getElementById('portFilter').value = '';
+    filterShips();
+}
+
+// 전체 선택 토글 기능
+function toggleSelectAll() {
+    const checkbox = document.getElementById('select-all-checkbox');
+    const isChecked = checkbox.checked;
+    
+    document.querySelectorAll('.row-check').forEach(check => {
+        check.checked = isChecked;
+    });
+}
+
+// 전체 선택 기능 (기존 호환성 유지)
+function selectAll() {
+    const checkbox = document.getElementById('select-all-checkbox');
+    const isChecked = checkbox.checked;
+    
+    document.querySelectorAll('.row-check').forEach(check => {
+        check.checked = isChecked;
+    });
+}
+
+// 체크박스 이벤트 초기화
+function initializeCheckboxEvents() {
+    const selectAllCheckbox = document.getElementById('select-all');
+    const rowChecks = document.querySelectorAll('.row-check');
+    
+    // 전체 선택 체크박스 이벤트
+    if (selectAllCheckbox) {
+        selectAllCheckbox.addEventListener('change', function() {
+            rowChecks.forEach(check => check.checked = selectAllCheckbox.checked);
+        });
+    }
+    
+    // 개별 체크박스 이벤트
+    rowChecks.forEach(check => {
+        check.addEventListener('change', function() {
+            const checkedCount = document.querySelectorAll('.row-check:checked').length;
+            selectAllCheckbox.checked = checkedCount === rowChecks.length;
+        });
+    });
+}
+
+// 이벤트 리스너 초기화
+function initializeEventListeners() {
+    // 검색 입력
+    const searchInput = document.getElementById('searchInput');
+    if (searchInput) {
+        searchInput.addEventListener('input', filterShips);
+    }
+    
+    // 필터 선택
+    const regionFilter = document.getElementById('regionFilter');
+    const portFilter = document.getElementById('portFilter');
+    
+    if (regionFilter) {
+        regionFilter.addEventListener('change', function() {
+            // 지역이 변경되면 항구 필터 업데이트
+            const selectedRegion = this.value;
+            const availablePorts = selectedRegion ? 
+                [...new Set(allShips.filter(s => s.region === selectedRegion).map(s => s.port))].sort() :
+                [...new Set(allShips.map(s => s.port))].sort();
+            
+            const portFilter = document.getElementById('portFilter');
+            const currentPortValue = portFilter.value;
+            
+            portFilter.innerHTML = '<option value="">전체 항구</option>' + 
+                availablePorts.map(p => `<option value="${p}"${p === currentPortValue ? ' selected' : ''}>${p}</option>`).join('');
+            
+            filterShips();
+        });
+    }
+    
+    if (portFilter) {
+        portFilter.addEventListener('change', filterShips);
+    }
+    
+    // 편집 버튼
+    const editButton = document.getElementById('edit-selected');
+    if (editButton) {
+        editButton.addEventListener('click', function() {
+            const checked = Array.from(document.querySelectorAll('.row-check:checked'));
+            if (checked.length === 0) {
+                alert('수정할 배를 선택하세요.');
+                return;
+            }
+            if (checked.length > 1) {
+                alert('한 번에 하나의 배만 수정할 수 있습니다.');
+                return;
+            }
+            const boatId = checked[0].value;
+            const row = checked[0].closest('.ship-row');
+            
+            // 행에서 배 정보 가져오기
+            const region = row.getAttribute('data-region');
+            const port = row.getAttribute('data-port');
+            const name = row.getAttribute('data-name');
+            const url = row.getAttribute('data-url') || '';
+            const note = row.getAttribute('data-note') || '';
+            
+            // 모달을 수정 모드로 열기
+            openEditModal(boatId, region, port, name, url, note);
+        });
+    }
+    
+    // 삭제 버튼
+    const deleteButton = document.getElementById('delete-selected');
+    const deleteForm = document.getElementById('delete-form');
+    
+    if (deleteButton && deleteForm) {
+        deleteButton.addEventListener('click', function() {
+            const checked = Array.from(document.querySelectorAll('.row-check:checked'));
+            if (checked.length === 0) {
+                alert('삭제할 배를 선택하세요.');
+                return;
+            }
+            
+            if (confirm(`선택한 ${checked.length}개의 배를 삭제하시겠습니까? 삭제하면 복구할 수 없습니다.`)) {
+                deleteForm.submit();
+            }
+        });
+    }
+    
+    // 업로드 버튼
+    const uploadBtn = document.getElementById('upload-btn');
+    const excelUploadInput = document.getElementById('excel-upload-input');
+    
+    if (uploadBtn && excelUploadInput) {
+        uploadBtn.addEventListener('click', () => {
+            excelUploadInput.click();
+        });
+        
+        excelUploadInput.addEventListener('change', handleFileUpload);
+    }
+}
+
+// 등록 모달 초기화
+function initializeRegisterModal() {
+    // Overlay/Panel
+    const overlay = document.getElementById('register-modal');
+    const closeBtn = document.getElementById('register-close');
+    const cancelBtn = document.getElementById('register-cancel');
+    const citySelect = document.getElementById('register-city');
+    const portSelect = document.getElementById('register-port');
+    const nameInput = document.getElementById('register-name');
+    const urlInput = document.getElementById('register-url');
+    const noteInput = document.getElementById('register-note');
+    const submitBtn = document.getElementById('register-submit');
+    const registerForm = overlay?.querySelector('form');
+    const modalTitle = document.getElementById('register-title');
+    const iconContainer = document.getElementById('modal-icon-container');
+    const boatIdInput = document.getElementById('boat-id');
+    
+    let isEditMode = false;
+
+    // 열기 트리거 (등록 모드)
+    document.querySelectorAll('.open-register-modal').forEach(el => {
+        el.addEventListener('click', (e) => {
+            e.preventDefault();
+            isEditMode = false;
+            setModalMode('register');
+            overlay.classList.add('active');
+            resetForm();
+        });
+    });
+
+    // 모달 모드 설정 (register 또는 edit)
+    function setModalMode(mode) {
+        isEditMode = (mode === 'edit');
+        if (isEditMode) {
+            modalTitle.textContent = '선박 정보 수정';
+            iconContainer.classList.remove('bg-red-500');
+            iconContainer.classList.add('bg-gray-500');
+            submitBtn.textContent = '수정하기';
+            registerForm.action = '/edit/' + (boatIdInput.value || '');
+        } else {
+            modalTitle.textContent = '선박 정보 등록';
+            iconContainer.classList.remove('bg-gray-500');
+            iconContainer.classList.add('bg-red-500');
+            submitBtn.textContent = '등록하기';
+            registerForm.action = '{{ url_for("views.register") }}';
+            boatIdInput.value = '';
+        }
+    }
+
+    // 닫기
+    function closeModal(){ 
+        overlay.classList.remove('active'); 
+        resetForm();
+        isEditMode = false;
+        setModalMode('register');
+    }
+    function resetForm(){
+        registerForm?.reset();
+        citySelect.value = '';
+        portSelect.innerHTML = '<option value="">항구를 선택하세요</option>';
+        boatIdInput.value = '';
+        validateForm();
+    }
+    if (closeBtn) closeBtn.addEventListener('click', closeModal);
+    if (cancelBtn) cancelBtn.addEventListener('click', closeModal);
+    overlay?.addEventListener('click', (e)=>{ if (e.target === overlay) closeModal(); });
+
+    // 지역-항구 매핑
+    const mapping = {{ city_port_map|tojson }};
+
+    // 도시 옵션 채우기
+    if (citySelect && mapping) {
+        citySelect.innerHTML = '<option value="">지역을 선택하세요</option>' +
+            Object.keys(mapping).map(c=>`<option value="${c}">${c}</option>`).join('');
+    }
+    // 도시 변경 시 항구 채우기
+    citySelect?.addEventListener('change', function(){
+        const city = this.value;
+        const ports = mapping[city] || [];
+        portSelect.innerHTML = '<option value="">항구를 선택하세요</option>' +
+            ports.map(p=>`<option value="${p}">${p}</option>`).join('');
+        validateForm();
+    });
+
+    // 폼 검증 (필수 필드)
+    function validateForm(){
+        const city = citySelect?.value || '';
+        const port = portSelect?.value || '';
+        const name = nameInput?.value.trim() || '';
+        const url = urlInput?.value.trim() || '';
+        const allFilled = city && port && name && url;
+        if (submitBtn) submitBtn.disabled = !allFilled;
+    }
+
+    // 필드 입력 시 검증
+    [citySelect, portSelect, nameInput, urlInput].forEach(el=>{
+        el?.addEventListener('input', validateForm);
+        el?.addEventListener('change', validateForm);
+    });
+
+    // 폼 제출 인터셉트 (AJAX + Toast)
+    registerForm?.addEventListener('submit', function(e){
+        e.preventDefault();
+        const formData = new FormData(this);
+        
+        // 제출 버튼 비활성화
+        if (submitBtn) submitBtn.disabled = true;
+
+        const successMessage = isEditMode ? '선박 정보가 수정 되었습니다.' : '새로운 배가 등록 되었습니다.';
+
+        fetch(this.action, {
+            method: 'POST',
+            body: formData
+        })
+        .then(res => res.text())
+        .then(() => {
+            showToast(successMessage);
+            closeModal();
+            // 목록 새로고침
+            setTimeout(()=>{ window.location.reload(); }, 1000);
+        })
+        .catch(err => {
+            console.error(err);
+            const errorMessage = isEditMode ? '수정 중 오류가 발생했습니다.' : '등록 중 오류가 발생했습니다.';
+            alert(errorMessage);
+            if (submitBtn) submitBtn.disabled = false;
+        });
+    });
+    
+    // 수정 모달 열기 함수를 전역으로 노출
+    window.openEditModal = function(boatId, region, port, name, url, note) {
+        isEditMode = true;
+        boatIdInput.value = boatId;
+        setModalMode('edit');
+        
+        // 폼 필드 채우기
+        citySelect.value = region;
+        
+        // 항구 옵션 채우기
+        const ports = mapping[region] || [];
+        portSelect.innerHTML = '<option value="">항구를 선택하세요</option>' +
+            ports.map(p=>`<option value="${p}">${p}</option>`).join('');
+        portSelect.value = port;
+        
+        nameInput.value = name;
+        urlInput.value = url;
+        noteInput.value = note || '';
+        
+        validateForm();
+        overlay.classList.add('active');
+    };
+}
+
+// Toast 메시지 표시
+function showToast(message){
+    let toast = document.getElementById('global-toast');
+    if (!toast){
+        toast = document.createElement('div');
+        toast.id = 'global-toast';
+        toast.className = 'toast';
+        document.body.appendChild(toast);
+    }
+    toast.textContent = message;
+    toast.classList.add('show');
+    setTimeout(()=>{ toast.classList.remove('show'); }, 3000);
+}// 파일 업로드 처리
+function handleFileUpload(event) {
+    const file = event.target.files[0];
+    if (!file) return;
+    
+    const formData = new FormData();
+    formData.append('excel_file', file);
+    
+    const uploadBtn = document.getElementById('upload-btn');
+    
+    // 로딩 상태 표시
+    uploadBtn.disabled = true;
+    uploadBtn.innerHTML = `
+        <svg class="icon animate-spin" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+            <path d="M21 12a9 9 0 1 1-6.219-8.56"/>
+        </svg>
+        업로드 중...
+    `;
+    
+    fetch("{{ url_for('views.upload_excel') }}", {
+        method: 'POST',
+        body: formData
+    })
+    .then(response => response.json())
+    .then(data => {
+        if (data.success) {
+            alert(data.message || '파일이 성공적으로 업로드되었습니다.');
+            window.location.reload();
+        } else {
+            alert('업로드 실패: ' + (data.message || '알 수 없는 오류가 발생했습니다.'));
+        }
+    })
+    .catch(error => {
+        console.error('Error:', error);
+        alert('업로드 중 오류가 발생했습니다.');
+    })
+    .finally(() => {
+        // 버튼 상태 복원
+        uploadBtn.disabled = false;
+        uploadBtn.innerHTML = `
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/>
+                <polyline points="17,8 12,3 7,8"/>
+                <line x1="12" y1="3" x2="12" y2="15"/>
+            </svg>
+            업로드
+        `;
+        event.target.value = '';
+    });
+}
+
+// CSS 애니메이션 추가
+const style = document.createElement('style');
+style.textContent = `
+    @keyframes spin {
+        from { transform: rotate(0deg); }
+        to { transform: rotate(360deg); }
+    }
+    .animate-spin {
+        animation: spin 1s linear infinite;
+    }
+`;
+document.head.appendChild(style);
+</script>
+
+<!-- 등록/수정 모달 -->
+<div id="register-modal" class="modal-overlay" aria-hidden="true">
+  <div class="modal-panel" role="dialog" aria-modal="true" aria-labelledby="register-title">
+    <div class="modal-header">
+      <div id="modal-icon-container" class="p-3 bg-red-500 rounded-xl">
+        <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ship size-6 text-white" aria-hidden="true">
+          <path d="M12 10.189V14"></path>
+          <path d="M12 2v3"></path>
+          <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"></path>
+          <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-8.188-3.639a2 2 0 0 0-1.624 0L3 14a11.6 11.6 0 0 0 2.81 7.76"></path>
+          <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path>
+        </svg>
+      </div>
+      <div class="title" id="register-title">선박 정보 등록</div>
+      <button id="register-close" class="close-x" aria-label="닫기">×</button>
+    </div>
+    <div class="modal-body">
+      <form id="register-form" method="post" action="{{ url_for('views.register') }}">
+        {{ form.csrf_token }}
+        <input type="hidden" id="boat-id" name="boat_id" value="">
+        <div class="form-grid">
+          <div class="form-item">
+            <label for="register-city">지역 *</label>
+            <select id="register-city" name="city" required></select>
+          </div>
+          <div class="form-item">
+            <label for="register-port">항구 *</label>
+            <select id="register-port" name="port" required></select>
+          </div>
+          <div class="form-item">
+            <label for="register-name">선박명 *</label>
+            <input id="register-name" name="name" type="text" placeholder="예: 아미스호" required />
+          </div>
+          <div class="form-item">
+            <label for="register-url">예약 URL *</label>
+            <input id="register-url" name="url" type="url" placeholder="https://example.com/ship/schedule_fleet" required />
+          </div>
+        </div>
+        <div class="form-item" style="margin-top:12px;">
+          <label for="register-note">비고</label>
+          <textarea id="register-note" name="note" placeholder="추가 정보나 특이사항을 입력하세요"></textarea>
+        </div>
+        <div class="form-actions">
+          <button type="button" id="register-cancel" class="btn cancel">닫기</button>
+          <button type="submit" id="register-submit" class="btn submit" disabled>등록하기</button>
+        </div>
+      </form>
+    </div>
+  </div>
+  
+</div>
+
+{% endblock %}

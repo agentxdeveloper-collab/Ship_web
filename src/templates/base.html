@@ -1,0 +1,190 @@
+<!doctype html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <title>Boat Reservations</title>
+  <style>
+    body { font-family: Arial, Helvetica, sans-serif; margin:0; padding:0; background: linear-gradient(#f7fbff, #eef7ff); }
+    /* Top banner (full-width background) */
+    .site-top {
+      width: 100%;
+      padding: 20px 0;
+      background: linear-gradient(90deg, #0066cc 0%, #0099cc 50%, #00cccc 100%);
+      color: #fff;
+      box-shadow: 0 4px 12px rgba(0,102,204,0.3);
+    }
+    .site-top .inner {
+      max-width: 1200px;
+      margin: 0 auto;
+      padding: 0 20px;
+      display:flex;
+      flex-direction:row;
+      align-items:center;
+      justify-content:space-between;
+      gap:20px;
+    }
+    .site-top .title {
+      display:flex;
+      align-items:center;
+      gap:12px;
+    }
+    .site-top .title .text-content {
+      display: flex;
+      flex-direction: column;
+      gap: 4px;
+    }
+    .site-top .title .logo {
+      width:60px; height:60px; flex:0 0 60px;
+      display:flex; align-items:center; justify-content:center;
+      background: rgba(255,255,255,0.08);
+      border-radius:10px;
+      box-shadow: inset 0 -4px 8px rgba(0,0,0,0.06);
+    }
+    .site-top .title .text {
+      font-weight:800;
+      font-size:36px;
+      line-height:1;
+    }
+    .site-top .subtitle {
+      font-size:13px;
+      opacity:0.95;
+      color: rgba(255,255,255,0.92);
+    }
+
+    /* GNB / quick-action buttons */
+    .site-top .actions { display:flex; gap:12px; align-items:center; }
+    .site-top .actions .qa-btn {
+      font-size:16px;
+      padding:12px 28px;
+      border-radius:8px;
+      font-weight:600;
+      text-decoration:none;
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      border:0;
+      cursor:pointer;
+      color:#fff;
+      transition: all 0.2s ease;
+      white-space: nowrap;
+    }
+    .qa-map { background:#3b82f6; }      /* 파란색 - 지도 */
+    .qa-weather { background:#f59e0b; }  /* 주황색 - 날씨 */
+    .qa-register { background:#ef4444; } /* 빨간색 - 배 등록 */
+    .qa-status { background:#10b981; }   /* 초록색 - 실제조회 */
+
+    .qa-btn:hover { opacity:0.9; transform:translateY(-1px); box-shadow:0 4px 12px rgba(0,0,0,0.15); }
+
+    /* flash/messages */
+    .flashes { list-style:none; padding:0; margin:8px auto 16px; max-width:1200px; }
+    .flashes li { margin-bottom:6px; }
+    
+    /* Main content wrapper */
+    .content-wrapper { max-width: 1200px; margin: 0 auto; padding: 0 20px; }
+
+    /* existing form-control and button styles (kept from base) */
+    .form-row { display:flex; flex-direction:column; gap:8px; margin-bottom:12px; max-width:720px; }
+    .form-control {
+      font-size:18px;
+      padding:12px 14px;
+      border:1px solid #ccd0d5;
+      border-radius:8px;
+      box-shadow: inset 0 1px 2px rgba(0,0,0,0.03);
+      width:100%;
+      box-sizing:border-box;
+    }
+    .form-label { font-size:16px; font-weight:600; color:#333; margin-bottom:4px; }
+    .btn {
+      display:inline-flex;
+      align-items:center;
+      gap:8px;
+      font-size:18px;
+      padding:10px 18px;
+      border-radius:8px;
+      border:0;
+      cursor:pointer;
+      text-decoration:none;
+    }
+    .btn-primary { background:#007bff; color:#fff; font-weight:700; box-shadow: 0 2px 6px rgba(0,123,255,0.18); }
+    .btn-ghost { background:transparent; border:1px solid #ccd0d5; color:#333; }
+
+    /* larger GNB text globally (if nav.main-nav used elsewhere) */
+    nav.main-nav a { font-size: 36px; } /* increased by 4px from prior setting */
+
+    @media (max-width:920px){
+      nav.main-nav a { font-size:24px; } /* responsive */
+      .site-top { padding:16px 0; }
+      .site-top .inner { 
+        padding: 0 16px; 
+        flex-direction: column;
+        align-items: flex-start;
+      }
+      .site-top .text { font-size:24px; }
+      .site-top .actions { 
+        width: 100%;
+        justify-content: flex-start;
+        flex-wrap: wrap;
+      }
+      .site-top .actions .qa-btn { font-size:14px; padding:10px 20px; }
+    }
+  </style>
+</head>
+<body>
+  <!-- Sea-themed full-width banner with left-aligned content and right-aligned buttons -->
+  <div class="site-top" role="banner" aria-label="AFT system banner">
+    <div class="inner">
+      <a href="{{ url_for('views.index') }}" style="text-decoration: none; color: inherit;">
+        <div class="title">
+          <div class="logo" aria-hidden="true">
+            <!-- 새로운 ship icon -->
+            <svg xmlns="http://www.w3.org/2000/svg" width="42" height="42" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-ship size-8 text-white" aria-hidden="true">
+              <path d="M12 10.189V14"></path>
+              <path d="M12 2v3"></path>
+              <path d="M19 13V7a2 2 0 0 0-2-2H7a2 2 0 0 0-2 2v6"></path>
+              <path d="M19.38 20A11.6 11.6 0 0 0 21 14l-8.188-3.639a2 2 0 0 0-1.624 0L3 14a11.6 11.6 0 0 0 2.81 7.76"></path>
+              <path d="M2 21c.6.5 1.2 1 2.5 1 2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1s1.2 1 2.5 1c2.5 0 2.5-2 5-2 1.3 0 1.9.5 2.5 1"></path>
+            </svg>
+          </div>
+          <div class="text-content">
+            <div class="text">AFT 배 자리 있냐??</div>
+            <div class="subtitle">원하는 배 자리 있는지 빨리 확인해 보자~~~</div>
+          </div>
+        </div>
+      </a>
+
+      <!-- quick action buttons on the right -->
+      <div class="actions">
+        <a href="{{ url_for('views.status') }}" class="qa-btn qa-status">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" class="lucide lucide-calendar size-4" aria-hidden="true">
+            <path d="M8 2v4"></path>
+            <path d="M16 2v4"></path>
+            <rect width="18" height="18" x="3" y="4" rx="2"></rect>
+            <path d="M3 10h18"></path>
+          </svg> 
+          예약 현황 조회
+        </a>
+
+        <a href="{{ url_for('views.weather') }}" class="qa-btn qa-weather">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M14.5 2a6.5 6.5 0 0 0-5.833 9.5H2.5l7 7 7-7h-6a5.5 5.5 0 1 1 4.002 9.506v2.014a7.5 7.5 0 1 0 0-15.02z"></path>
+          </svg>
+          날씨 정보
+        </a>
+      </div>
+    </div>
+  </div>
+
+  <div class="content-wrapper">
+    {% with messages = get_flashed_messages(with_categories=true) %}
+      {% if messages %}
+        <ul class="flashes">
+          {% for category, msg in messages %}
+            <li><strong>{{ category }}:</strong> {{ msg }}</li>
+          {% endfor %}
+        </ul>
+      {% endif %}
+    {% endwith %}
+    {% block content %}{% endblock %}
+  </div>
+</body>
+</html>

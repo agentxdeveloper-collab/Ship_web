@@ -1,0 +1,135 @@
+{% extends "base.html" %}
+
+{% block content %}
+<link rel="stylesheet" href="https://unpkg.com/leaflet@1.7.1/dist/leaflet.css"
+    integrity="sha512-xodZBNTC5n17Xt2atTPuE1HxjVMSvLVW9ocqUKLsCC5CXdbqCmblAshOMAS6/keqq/sMZMZ19scR4PsZChSR7A=="
+    crossorigin=""/>
+<script src="https://unpkg.com/leaflet@1.7.1/dist/leaflet.js"
+    integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
+    crossorigin=""></script>
+<style>
+    #map { height: 80vh; }
+    .boat-marker {
+        background-color: #009900;
+        border: 1px solid #000;
+        border-radius: 50%;
+        text-align: center;
+        line-height: 20px;
+        font-weight: bold;
+        color: #fff;
+    }
+        /* Tabs (match index.html look-and-feel) */
+        .tab-actions-container {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin: 12px 0;
+            padding: 4px 0;
+        }
+        .tab-menu {
+            display: flex;
+            align-items: center;
+            background: #f1f5f9;
+            border-radius: 8px;
+            padding: 2px 4px;
+            gap: 2px;
+        }
+        .tab-btn {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            padding: 8px 14px;
+            border: none;
+            background: transparent;
+            border-radius: 6px;
+            font-size: 14px;
+            font-weight: 500;
+            color: #64748b;
+            cursor: pointer;
+            transition: all 0.2s ease;
+        }
+        .tab-btn.active { background: #fff; color: #1e293b; box-shadow: 0 1px 3px rgba(0,0,0,0.1); }
+        .ship-count-inline {
+            display: inline-flex;
+            align-items: center;
+            padding: 6px 10px;
+            margin-left: 4px;
+            background: #e2e8f0;
+            color: #475569;
+            border-radius: 8px;
+            font-size: 13px;
+            font-weight: 500;
+            line-height: 1;
+        }
+        .icon { width: 16px; height: 16px; stroke-width: 2; }
+</style>
+
+<h2>대한민국 항구 지도</h2>
+<div class="tab-actions-container">
+    <div class="tab-menu">
+        <button type="button" class="tab-btn" onclick="window.location.href='{{ url_for('views.index') }}'">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <line x1="8" y1="6" x2="21" y2="6"/>
+                <line x1="8" y1="12" x2="21" y2="12"/>
+                <line x1="8" y1="18" x2="21" y2="18"/>
+                <line x1="3" y1="6" x2="3.01" y2="6"/>
+                <line x1="3" y1="12" x2="3.01" y2="12"/>
+                <line x1="3" y1="18" x2="3.01" y2="18"/>
+            </svg>
+            목록보기
+        </button>
+        <button type="button" class="tab-btn active">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+                <polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2 1,6"/>
+                <line x1="8" y1="2" x2="8" y2="18"/>
+                <line x1="16" y1="6" x2="16" y2="22"/>
+            </svg>
+            지도보기
+        </button>
+        <span class="ship-count-inline">총 <span id="shipCount">{{ total_boats }}</span>척</span>
+    </div>
+</div>
+<div id="map"></div>
+
+<script>
+    var map = L.map('map').setView([35.9, 127.7], 7.5);
+
+    L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+        attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'
+    }).addTo(map);
+
+    var cityPortMapping = {{ city_port_mapping | tojson }};
+    var portCoordinates = {{ port_coordinates | tojson }};
+    var boatCounts = {{ boat_counts | tojson }};
+    var portBoatNames = {{ port_boat_names | tojson }};
+
+    for (var city in cityPortMapping) {
+        if (cityPortMapping.hasOwnProperty(city)) {
+            var ports = cityPortMapping[city];
+            ports.forEach(function(portName) {
+                if (portCoordinates.hasOwnProperty(portName)) {
+                    var coords = portCoordinates[portName];
+                    var boatCount = boatCounts[portName] || 0;
+
+                    if (boatCount > 0) {
+                        var boatNames = portBoatNames[portName] || [];
+                        var boatNamesString = boatNames.join(' / ');
+
+                        var markerIcon = L.divIcon({
+                            className: 'boat-marker',
+                            html: '<div>' + boatCount + '</div>',
+                            iconSize: [20, 20]
+                        });
+
+                        var popupContent = city + ': ' + portName + '<br>';
+                        popupContent += '등록된 배 (' + boatCount + '척) : ' + boatNamesString;
+
+                        L.marker([coords.lat, coords.lon], {icon: markerIcon}).addTo(map)
+                            .bindPopup(popupContent);
+                    }
+                }
+            });
+        }
+    }
+</script>
+{% endblock %}

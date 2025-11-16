@@ -1,0 +1,94 @@
+{% extends "base.html" %}
+{% block content %}
+
+<h2 style="margin-bottom:12px;">배 정보 수정</h2>
+
+<form method="post" action="{{ url_for('views.edit_boat', boat_id=boat_id) }}" style="max-width:720px;">
+  {{ form.csrf_token }}
+  {{ form.id }}
+  <div class="form-row">
+    <label class="form-label" for="city">지역</label>
+    {{ form.city(class_="form-control", id="city") }}
+  </div>
+
+  <div class="form-row">
+    <label class="form-label" for="port">항구</label>
+    {{ form.port(class_="form-control", id="port") }}
+  </div>
+
+  <div class="form-row">
+    <label class="form-label" for="name">배 이름</label>
+    {{ form.name(class_="form-control", id="name", placeholder="예: 어비스호") }}
+  </div>
+
+  <div class="form-row">
+    <label class="form-label" for="url">예약 페이지 URL</label>
+    {{ form.url(class_="form-control", id="url", placeholder="https://...") }}
+  </div>
+
+  <div style="display:flex; gap:12px; margin-top:8px; align-items:center;">
+    <button type="submit" class="btn btn-primary">
+      수정하기
+    </button>
+
+    <a href="{{ url_for('views.index') }}" class="btn btn-ghost" style="text-decoration:none;">취소</a>
+  </div>
+</form>
+
+<script>
+// 지역과 항구 매핑 데이터
+const cityPortMapping = {
+  '인천': ['남항(인천항)', '연안부두', '영흥항'],
+  '안산': ['오이도항'],
+  '화성': ['전곡항'],
+  '평택': ['평택항'],
+  '당진': ['장고항'],
+  '서산': ['삼길포항'],
+  '태안': ['마검포항', '모항항', '영목항', '신진도항'],
+  '보령': ['오천항', '구매항', '대천항', '무창포항', '남당항', '홍원항'],
+  '군산': ['비응항', '야미도항'],
+  '격포': ['격포항'],
+  '여수': ['돌산항', '국동항', '소호항', '종포항', '신추항'],
+  '고흥': ['녹동방파제']
+};
+
+// 지역 선택 시 항구 옵션 업데이트
+document.getElementById('city').addEventListener('change', function() {
+  const city = this.value;
+  const portSelect = document.getElementById('port');
+  
+  // 기존 옵션 제거
+  portSelect.innerHTML = '';
+  
+  if (city && cityPortMapping[city]) {
+    // 새 옵션 추가
+    cityPortMapping[city].forEach(port => {
+      const option = document.createElement('option');
+      option.value = port;
+      option.textContent = port;
+      portSelect.appendChild(option);
+    });
+  }
+});
+
+// 페이지 로드 시 초기 항구 목록 설정
+document.addEventListener('DOMContentLoaded', function() {
+    const city = document.getElementById('city').value;
+    const portSelect = document.getElementById('port');
+    const currentPort = '{{ form.port.data }}'; // 현재 설정된 항구
+
+    if (city && cityPortMapping[city]) {
+        cityPortMapping[city].forEach(port => {
+            const option = document.createElement('option');
+            option.value = port;
+            option.textContent = port;
+            if (port === currentPort) {
+                option.selected = true;
+            }
+            portSelect.appendChild(option);
+        });
+    }
+});
+</script>
+
+{% endblock %}

@@ -1,0 +1,588 @@
+{% extends "base.html" %}
+{% block content %}
+
+<style>
+  /* 통합 필터 카드 스타일 */
+  .filter-card {
+    background: #f0fdf4;
+    border-radius: 20px;
+    padding: 30px;
+    margin: 20px auto;
+    max-width: 1400px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  }
+
+  /* 헤더 섹션 */
+  .header-section {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 20px;
+  }
+
+  .header-section .header-icon {
+    width: 48px;
+    height: 48px;
+    background: #10b981;
+    border-radius: 12px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 24px;
+    flex-shrink: 0;
+  }
+
+  .header-section h2 {
+    color: #1f2937;
+    font-size: 28px;
+    font-weight: 700;
+    margin: 0;
+  }
+
+  /* 날짜 입력 크기 */
+  .date-input {
+    font-size: 25px;
+    padding: 7px 11px;
+    width: 90%;
+    max-width: 250px;
+    text-align: center;
+    border: 2px solid #e5e7eb;
+    border-radius: 12px;
+    transition: all 0.2s ease;
+  }
+  
+  .date-input:focus {
+    outline: none;
+    border-color: #3b82f6;
+    box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.1);
+  }
+
+  /* 조회 버튼 스타일 */
+  .btn-search {
+    padding: 14px 40px;
+    font-size: 18px;
+    font-weight: 600;
+    color: white;
+    background: #3b82f6;
+    border: none;
+    border-radius: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    box-shadow: 0 4px 12px rgba(59, 130, 246, 0.3);
+    display: inline-flex;
+    align-items: center;
+    gap: 8px;
+  }
+
+  .btn-search:hover {
+    background: #2563eb;
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(59, 130, 246, 0.4);
+  }
+
+  .btn-search:active {
+    transform: translateY(0);
+  }
+  /* 지역 선택 pill 스타일 */
+  .region-filter label {
+    position: relative;
+    cursor: pointer;
+  }
+
+  .region-filter input[type="checkbox"] {
+    position: absolute;
+    opacity: 0;
+    pointer-events: none;
+  }
+
+  .region-filter label span {
+    display: inline-block;
+    padding-top: 5px;
+    padding-bottom: 7px;
+    padding-left: 10px;
+    padding-right: 10px;
+    border: 2px solid #e5e7eb;
+    border-radius: 50px;
+    background: white;
+    color: #6b7280;
+    font-size: 15px;
+    font-weight: 500;
+    transition: all 0.2s ease;
+    white-space: nowrap;
+  }
+
+  .region-filter label:hover span {
+    border-color: #d1d5db;
+    transform: translateY(-1px);
+  }
+
+  .region-filter input[type="checkbox"]:checked + span {
+    background: #10b981;
+    border-color: #10b981;
+    color: white;
+    box-shadow: 0 4px 12px rgba(16, 185, 129, 0.3);
+  }
+
+  .status-open { color:#ff0000; font-weight:700; }
+  .status-closed { color:#000000; font-weight:700; }
+
+  /* Spinner */
+  @keyframes spin { to { transform: rotate(360deg); } }
+  #loading-overlay{
+    display:none; position:fixed; inset:0; z-index:9999;
+    background:rgba(255,255,255,0.85);
+    align-items:center; justify-content:center;
+  }
+  #loading-overlay .spinner{
+    width:56px; height:56px; border:6px solid #e5e7eb;
+    border-top-color:#0366a6; border-radius:50%;
+    animation:spin 1s linear infinite; margin:0 auto 14px;
+  }
+  #loading-overlay .msg{
+    font-size:18px; color:#0366a6; font-weight:700; text-align:center;
+  }
+
+  /* 정렬 아이콘 버튼 공통 */
+  .sort-icon {
+    border: 0; background: transparent; padding: 0 4px; margin-left: 6px;
+    cursor: pointer; color: #6b7280; font-size: 14px; line-height: 1;
+  }
+  .sort-icon:hover { color: #374151; }
+  .sort-icon i { pointer-events: none; }
+
+  /* 아이콘 폴백(부트스트랩 아이콘 미사용 시) */
+  .sort-icon[data-fallback="up"]::after { content: '▲'; }
+  .sort-icon[data-fallback="down"]::after { content: '▼'; }
+
+  /* 테이블 스타일 */
+  .results-section {
+    max-width: 1400px;
+    margin: 30px auto;
+  }
+
+  .results-title {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1f2937;
+    margin-bottom: 16px;
+  }
+
+  .table-wrapper {
+    background: white;
+    border-radius: 16px;
+    padding: 20px;
+    box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+    overflow-x: auto;
+  }
+
+  #results-table {
+    width: 100%;
+    min-width: 900px;
+    border-collapse: collapse;
+  }
+
+  #results-table thead th {
+    background: #f9fafb;
+    padding: 12px;
+    text-align: left;
+    font-weight: 600;
+    color: #374151;
+    border-bottom: 2px solid #e5e7eb;
+    font-size: 14px;
+    white-space: nowrap;
+  }
+
+  #results-table tbody td {
+    padding: 12px;
+    border-bottom: 1px solid #f3f4f6;
+    font-size: 14px;
+    color: #4b5563;
+  }
+
+  #results-table tbody tr:nth-child(even) {
+    background-color: #f9fafb;
+  }
+
+  #results-table tbody tr:nth-child(odd) {
+    background-color: #ffffff;
+  }
+
+  #results-table tbody tr:hover {
+    background-color: #f3f4f6 !important;
+  }
+
+  #results-table tbody tr:last-child td {
+    border-bottom: none;
+  }
+
+  .status-badge {
+    display: inline-block;
+    padding: 6px 16px;
+    border-radius: 20px;
+    font-size: 14px;
+    font-weight: 500;
+    white-space: nowrap;
+  }
+  
+  .badge-available {
+    background-color: #fee2e2;
+    color: #dc2626;
+  }
+  
+  .badge-closed {
+    background-color: #4b5563;
+    color: #ffffff;
+  }
+  
+  .badge-maintenance {
+    background-color: #f3f4f6;
+    color: #6b7280;
+  }
+</style>
+
+<!-- 통합 필터 카드 -->
+<div class="filter-card">
+  <form id="status-form" method="get" action="{{ url_for('views.status') }}">
+    {{ form.csrf_token }}
+
+    <!-- 헤더 섹션 -->
+    <div class="header-section">
+      <div class="header-icon">📅</div>
+      <h2>예약 현황 조회</h2>
+    </div>
+
+    <!-- 지역 선택 라벨 -->
+    <div style="margin-bottom: 12px;">
+      <label style="font-size: 14px; font-weight: 600; color: #374151;">지역 선택</label>
+    </div>
+
+    <!-- 지역 체크박스 -->
+    <div class="region-filter" style="margin-bottom: 20px; display: flex; flex-wrap: wrap; gap: 8px;">
+      <label>
+        <input type="checkbox" name="regions" value="전체"
+          {{ 'checked' if ('전체' in (selected_regions or [])) else '' }}
+          data-count="{{ total_registered or 0 }}">
+        <span>전체({{ total_registered or 0 }})</span>
+      </label>
+      {% for region in region_names %}
+        <label>
+          <input type="checkbox" name="regions" value="{{ region }}"
+            {{ 'checked' if (region in (selected_regions or [])) else '' }}
+            data-count="{{ region_counts.get(region, 0) }}">
+          <span>{{ region }}({{ region_counts.get(region, 0) }})</span>
+        </label>
+      {% endfor %}
+    </div>
+
+    <!-- 날짜 입력 -->
+    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items: flex-end;">
+      <div style="flex:1; min-width:180px; max-width:250px;">
+        <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="year">연도</label>
+        <input id="year" name="year" type="number" class="date-input" min="2000" max="2100"
+               value="{{ year or '' }}" required>
+      </div>
+      <div style="flex:1; min-width:180px; max-width:250px;">
+        <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="month">월</label>
+        <input id="month" name="month" type="number" class="date-input" min="1" max="12"
+               value="{{ month or '' }}" required>
+      </div>
+      <div style="flex:1; min-width:180px; max-width:250px;">
+        <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="day">일</label>
+        <input id="day" name="day" type="number" class="date-input" min="1" max="31"
+               value="{{ day or '' }}" required>
+      </div>
+      <div style="flex:0 0 auto;">
+        <button id="searchBtn" type="submit" class="btn-search">
+          🔍 조회
+        </button>
+      </div>
+    </div>
+  </form>
+</div>
+
+<!-- Spinner Overlay -->
+<div id="loading-overlay">
+  <div>
+    <div class="spinner"></div>
+    <div class="msg">데이터 조회 중...</div>
+  </div>
+</div>
+
+<!-- 조회 결과 섹션 -->
+<div class="results-section">
+  <h3 class="results-title">조회 결과 (실시간)</h3>
+  
+  <div class="table-wrapper">
+    <table id="results-table">
+      <thead>
+        <tr>
+          <th style="width: 60px;">
+            지역
+            <button type="button" class="sort-btn sort-icon" data-sort-key="city" data-dir="asc">▲▼</button>
+          </th>
+          <th style="width: 70px;">
+            항구
+            <button type="button" class="sort-btn sort-icon" data-sort-key="port" data-dir="asc">▲▼</button>
+          </th>
+          <th style="width: 100px;">
+            등록된 배
+            <button type="button" class="sort-btn sort-icon" data-sort-key="registered_name" data-dir="asc">▲▼</button>
+          </th>
+          <th style="width: 200px;">
+            어종
+            <button type="button" class="sort-btn sort-icon" data-sort-key="fish" data-dir="asc">▲▼</button>
+          </th>
+          <th style="width: 200px;">
+            배 이름
+            <button type="button" class="sort-btn sort-icon" data-sort-key="ship_name" data-dir="asc">▲▼</button>
+          </th>
+          <th style="width: 120px; text-align: center;">
+            상태
+            <button type="button" class="sort-btn sort-icon" data-sort-key="status" data-dir="asc">▲▼</button>
+          </th>
+          <th style="width: 100px; text-align: center;">
+            남은자리
+            <button type="button" class="sort-btn sort-icon" data-sort-key="available" data-dir="asc">▲▼</button>
+          </th>
+          <th style="width: 92px;">
+            URL
+          </th>
+        </tr>
+      </thead>
+      <tbody id="results-body">
+      {% if entries and entries|length > 0 %}
+        {% for entry in entries %}
+          {% set is_open = (entry.status == 'open') %}
+          {% set is_closed = (entry.status in ['full','reserved']) %}
+          {% set show_status =
+              '예약가능' if is_open
+              else ('예약마감' if is_closed else ('점검일' if entry.status == 'maintenance' else (entry.display_status or entry.status or '알 수 없음'))) %}
+          <tr>
+            <td>{{ entry.city or '-' }}</td>
+            <td>{{ entry.port or '-' }}</td>
+            <td>{{ entry.registered_name or '-' }}</td>
+            <td>{{ entry.fish or '-' }}</td>
+            <td style="font-weight: 600;">{{ entry.ship_name or '-' }} {% if entry.tide %}({{ entry.tide }}){% endif %}</td>
+            <td style="text-align: center;">
+              <span class="status-badge {{ 'badge-available' if is_open else 'badge-closed' if is_closed else 'badge-maintenance' }}">
+                {{ show_status }}
+              </span>
+            </td>
+            <td style="text-align: center;">
+              {{ 0 if is_closed else (entry.available if entry.available is not none else '-') }}
+            </td>
+            <td>
+              {% if entry.url %}
+                <a href="{{ entry.url }}" target="_blank" rel="noopener noreferrer" style="color: #3b82f6; text-decoration: none;">
+                  URL 링크
+                </a>
+              {% else %}
+                -
+              {% endif %}
+            </td>
+          </tr>
+        {% endfor %}
+      {% else %}
+        <tr>
+          <td colspan="8" style="padding: 40px; text-align: center; color: #9ca3af;">
+            조회 결과가 없습니다. 상단에서 지역과 날짜를 선택 후 조회하세요.
+          </td>
+        </tr>
+      {% endif %}
+    </tbody>
+  </table>
+</div>
+</div>
+
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    // '전체' 선택 시 다른 지역 해제, 개별 지역 선택 시 '전체' 해제
+    const allBox = document.querySelector('input[name="regions"][value="전체"]');
+    const regionBoxes = Array.from(document.querySelectorAll('input[name="regions"]')).filter(cb => cb.value !== '전체');
+    if(allBox){
+      allBox.addEventListener('change', function(){
+        if(allBox.checked){ regionBoxes.forEach(cb => cb.checked = false); }
+      });
+      regionBoxes.forEach(cb => {
+        cb.addEventListener('change', function(){
+          if(cb.checked) allBox.checked = false;
+          if(!regionBoxes.some(b => b.checked)) allBox.checked = true; // 모두 해제 시 '전체' 자동 선택
+        });
+      });
+    }
+
+    // 폼 제출 시 스피너 표시
+    const form = document.getElementById('status-form');
+    const overlay = document.getElementById('loading-overlay');
+    if(form && overlay){
+      form.addEventListener('submit', function(e){
+        overlay.style.display = 'flex';
+        const btn = form.querySelector('button[type="submit"], #searchBtn');
+        if(btn){ btn.disabled = true; }
+      });
+    }
+
+    // ====== 정렬 동작 로직 (행 단위로 변경) ======
+    const tbody = document.getElementById('results-body');
+    const sortBtns = document.querySelectorAll('thead .sort-btn');
+    if (!tbody) return;
+
+    function parseRows() {
+      const rows = [];
+      for (const tr of Array.from(tbody.querySelectorAll('tr'))) {
+        const tds = tr.querySelectorAll('td');
+        if (tds.length < 8) continue;
+
+        let i = 0;
+        const city = tds[i++]?.textContent.trim() || '';
+        const port = tds[i++]?.textContent.trim() || '';
+        const registered_name = tds[i++]?.textContent.trim() || '';
+        const fish = tds[i++]?.textContent.trim() || '';
+        const ship_name = tds[i++]?.textContent.trim() || '';
+
+        const statusTd = tds[i++];
+        const statusBadge = statusTd?.querySelector('.status-badge');
+        const status_text = statusBadge?.textContent.trim() || statusTd?.textContent.trim() || '';
+        
+        let status_class = 'unknown';
+        if (statusBadge) {
+          if (statusBadge.classList.contains('badge-available')) status_class = 'open';
+          else if (statusBadge.classList.contains('badge-closed')) status_class = 'closed';
+          else if (statusBadge.classList.contains('badge-maintenance')) status_class = 'maintenance';
+        }
+
+        const availText = tds[i++]?.textContent.trim() || '';
+        const available = /^\d+$/.test(availText) ? parseInt(availText, 10) : null;
+
+        const urlTd = tds[i++];
+        const a = urlTd?.querySelector('a');
+        const url = a ? a.getAttribute('href') : '';
+        const url_path = a ? (a.textContent || '').trim() : '';
+
+        rows.push({
+          city, port, registered_name, fish, ship_name,
+          status_text, status_class, available, url, url_path
+        });
+      }
+      return rows;
+    }
+
+    function renderRows(rows) {
+      const frag = document.createDocumentFragment();
+      for (const r of rows) {
+        const tr = document.createElement('tr');
+
+        // 지역
+        const tdCity = document.createElement('td');
+        tdCity.textContent = r.city;
+        tr.appendChild(tdCity);
+
+        // 항구
+        const tdPort = document.createElement('td');
+        tdPort.textContent = r.port;
+        tr.appendChild(tdPort);
+
+        // 등록된 배
+        const tdRN = document.createElement('td');
+        tdRN.textContent = r.registered_name || '-';
+        tr.appendChild(tdRN);
+
+        // 어종
+        const tdFish = document.createElement('td');
+        tdFish.textContent = r.fish || '-';
+        tr.appendChild(tdFish);
+
+        // 배 이름
+        const tdShip = document.createElement('td');
+        tdShip.style.fontWeight = '600';
+        tdShip.textContent = r.ship_name || '-';
+        tr.appendChild(tdShip);
+
+        // 상태 (badge 스타일 적용)
+        const tdStatus = document.createElement('td');
+        tdStatus.style.textAlign = 'center';
+        const badge = document.createElement('span');
+        badge.className = 'status-badge';
+        
+        if (r.status_class === 'open') {
+          badge.classList.add('badge-available');
+          badge.textContent = '예약가능';
+        } else if (r.status_class === 'closed') {
+          badge.classList.add('badge-closed');
+          badge.textContent = '예약마감';
+        } else if (r.status_class === 'maintenance') {
+          badge.classList.add('badge-maintenance');
+          badge.textContent = '점검일';
+        } else {
+          badge.textContent = r.status_text || '-';
+        }
+        tdStatus.appendChild(badge);
+        tr.appendChild(tdStatus);
+
+        // 남은자리
+        const tdAvail = document.createElement('td');
+        tdAvail.style.textAlign = 'center';
+        tdAvail.textContent = (r.status_class === 'closed') ? '0' : (r.available != null ? String(r.available) : '-');
+        tr.appendChild(tdAvail);
+
+        // URL
+        const tdUrl = document.createElement('td');
+        if (r.url) {
+          const link = document.createElement('a');
+          link.href = r.url;
+          link.target = '_blank';
+          link.rel = 'noopener noreferrer';
+          link.style.cssText = 'color: #3b82f6; text-decoration: none;';
+          link.textContent = 'URL 링크';
+          tdUrl.appendChild(link);
+        } else {
+          tdUrl.textContent = '-';
+        }
+        tr.appendChild(tdUrl);
+
+        frag.appendChild(tr);
+      }
+      tbody.innerHTML = '';
+      tbody.appendChild(frag);
+    }
+
+    function compareStr(a, b) {
+      return (a || '').localeCompare((b || ''), 'ko');
+    }
+    function statusRank(s) {
+      if (s === 'open') return 0;
+      if (s === 'maintenance') return 1;
+      if (s === 'closed') return 2;
+      return 3;
+    }
+
+    function sortRows(rows, key, dir) {
+      const asc = dir === 'asc' ? 1 : -1;
+      return rows.sort((r1, r2) => {
+
+        if (key === 'status') {
+          return (statusRank(r1.status_class) - statusRank(r2.status_class)) * asc;
+        }
+        if (['city','port','registered_name','fish','ship_name'].includes(key)) {
+          return compareStr(r1[key], r2[key]) * asc;
+        }
+        return 0;
+      });
+    }
+
+    function handleSortClick(e) {
+      const btn = e.currentTarget;
+      const key = btn.dataset.sortKey;
+      const dir = btn.dataset.dir || 'asc';
+      if (!key) return;
+
+      const rows = parseRows();
+      sortRows(rows, key, dir);
+      renderRows(rows);
+    }
+
+    sortBtns.forEach(b => b.addEventListener('click', handleSortClick));
+    // ====== 정렬 로직 끝 ======
+  });
+</script>
+{% endblock %}

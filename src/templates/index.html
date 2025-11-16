@@ -1082,7 +1082,11 @@ function renderShips(ships) {
 
 // 필터 옵션 업데이트
 function updateFilters() {
-    const regions = [...new Set(allShips.map(s => s.region))].sort();
+    // 지역을 정의된 순서대로 정렬
+    const regionOrder = ['인천', '안산', '화성', '평택', '당진', '서산', '태안', '보령', '군산', '격포', '여수', '고흥'];
+    const regionsSet = new Set(allShips.map(s => s.region));
+    const regions = regionOrder.filter(r => regionsSet.has(r));
+    
     const ports = [...new Set(allShips.map(s => s.port))].sort();
     
     const regionFilter = document.getElementById('regionFilter');
@@ -1328,10 +1332,12 @@ function initializeRegisterModal() {
     // 지역-항구 매핑
     const mapping = {{ city_port_map|tojson }};
 
-    // 도시 옵션 채우기
+    // 도시 옵션 채우기 (정의된 순서대로)
+    const cityOrder = ['인천', '안산', '화성', '평택', '당진', '서산', '태안', '보령', '군산', '격포', '여수', '고흥'];
     if (citySelect && mapping) {
+        const orderedCities = cityOrder.filter(c => mapping[c]);
         citySelect.innerHTML = '<option value="">지역을 선택하세요</option>' +
-            Object.keys(mapping).map(c=>`<option value="${c}">${c}</option>`).join('');
+            orderedCities.map(c=>`<option value="${c}">${c}</option>`).join('');
     }
     // 도시 변경 시 항구 채우기
     citySelect?.addEventListener('change', function(){

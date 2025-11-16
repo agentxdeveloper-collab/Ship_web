@@ -9,6 +9,7 @@ from datetime import date as dt_date
 from urllib.parse import urlparse
 from models import Boat
 from concurrent.futures import ThreadPoolExecutor, as_completed
+import re
 
 views = Blueprint('views', __name__, template_folder='templates')
 
@@ -391,9 +392,8 @@ def get_city_port_mapping():
         '서산': ['삼길포항'],
         '태안': ['마검포항', '모항항', '영목항', '신진도항'],
         '보령': ['오천항', '구매항', '대천항', '무창포항', '남당항', '홍원항'],
-        '서천': ['비응항'],
-        '군산': ['야미도항'],
-        '부안': ['격포항'],
+        '군산': ['비응항', '야미도항'],
+        '격포': ['격포항'],
         '여수': ['돌산항', '국동항', '소호항', '신추항', '종포항'],
         '고흥': ['녹동방파제']
     }
@@ -810,6 +810,78 @@ def api_tide():
         })
 
     return jsonify({'port_id': port_id, 'source_url': used_url if date_str else base_url, 'data': data_out, 'date': date_str})
+
+# New: Parse Badatime graph page and return only summary table + chart script
+@views.route('/api/tide_graph', methods=['GET'])
+def api_tide_graph():
+    """Badatime 그래프 페이지(/{port_id}/graph/{date})에서 요약 테이블(pc_txt_view)과
+    차트 컨테이너(#chartdiv) 및 해당 스크립트만 추출해서 반환.
+    응답: { success, pc_html, chart_html, script, source_url }
+    """
+    import requests
+    from bs4 import BeautifulSoup
+
+    port_id = request.args.get('port_id', type=int)
+    date_str = request.args.get('date', default='')  # YYYY-MM-DD
+    if not port_id or not date_str:
+        return jsonify({'success': False, 'message': 'port_id와 date가 필요합니다.'}), 400
+
+    source_url = f"https://www.badatime.com/{port_id}/graph/{date_str}"
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/118.0 Safari/537.36'
+    }
+    try:
+        resp = requests.get(source_url, headers=headers, timeout=10)
+        if resp.status_code != 200:
+            return jsonify({'success': False, 'message': f'페이지 응답 오류: {resp.status_code}'}), 502
+    except Exception as e:
+        return jsonify({'success': False, 'message': f'요청 실패: {e}'}), 500
+
+    soup = BeautifulSoup(resp.text, 'html.parser')
+
+    # PC 요약 테이블
+    pc_view = soup.select_one('div.pc_txt_view')
+    pc_html = pc_view.decode() if pc_view else ''
+
+    # 차트 컨테이너와 스크립트(바로 뒤에 오는 inline script)
+    chart_div = soup.select_one('#chartdiv')
+    chart_html = ''
+    script_text = ''
+    if chart_div:
+        # chart div 자체는 보통 빈 div. height 스타일을 보장하기 위해 기본 높이 부여
+        # 원본 div를 복사하고 style 추가
+        chart_div_copy = BeautifulSoup(str(chart_div), 'html.parser')
+        chart_root = chart_div_copy.select_one('#chartdiv')
+        if chart_root:
+            # 기본 높이 적용 (없을 경우)
+            style_val = chart_root.get('style', '')
+            if 'height:' not in style_val:
+                style_val = (style_val + '; height: 460px;').strip('; ')
+                chart_root['style'] = style_val
+        chart_html = str(chart_div_copy)
+
+        # 차트 설정 스크립트: chartdiv 다음 <script> 추출
+        next_script = chart_div.find_next('script')
+        if next_script and next_script.string:
+            script_text = next_script.string
+        else:
+            # 일부 페이지는 script 내에 주석/공백 포함 -> 전체 텍스트 사용
+            script_text = next_script.get_text("\n") if next_script else ''
+
+        # 안전을 위해 외부 참조가 상대경로일 경우 절대경로로 고치기(이미지/아이콘 등)
+        def absolutize_urls(html_text: str) -> str:
+            return re.sub(r'(["\'])(\/\/(?:images|img)\.badatime\.com[^"\']*)(["\'])', r"http:\1\2\3", html_text)
+
+        pc_html = absolutize_urls(pc_html)
+        chart_html = absolutize_urls(chart_html)
+
+    return jsonify({
+        'success': True,
+        'pc_html': pc_html,
+        'chart_html': chart_html,
+        'script': script_text,
+        'source_url': source_url,
+    })
 
 @views.route('/map')
 def map_page():

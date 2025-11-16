@@ -6,14 +6,14 @@
   .tide-title{font-size:22px;font-weight:700;margin:0 0 18px;color:#1f2937}
   .tide-form{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
   .tide-form .form-group{flex:1;min-width:180px}
-  .form-group label{display:block;font-size:16px;font-weight:700;color:#374151;margin-bottom:6px}
+  .form-group label{display:block;font-size:18px;font-weight:700;color:#374151;margin-bottom:6px}
   /* Reuse register form-control, but larger for weather */
-  .tide-form .form-control{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:22px;box-sizing:border-box}
+  .tide-form .form-control{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:18px;box-sizing:border-box}
   .btn-fetch{padding:14px 32px;background:#0d9488;color:#fff;font-weight:700;font-size:18px;border:none;border-radius:8px;cursor:pointer}
   .btn-fetch:hover{background:#0f766e}
-  .result-header{background:linear-gradient(135deg,#06b6d4 0%,#0e7490 100%);color:#fff;padding:20px;border-radius:18px 18px 0 0;text-align:center}
+  .result-header{background:linear-gradient(135deg,#06b6d4 0%,#0e7490 100%);color:#fff;padding:15px 0;border-radius:18px 18px 0 0;text-align:center}
   .result-header h2{margin:0;font-size:22px;font-weight:700}
-  .result-header p{margin:6px 0 0;font-size:13px;opacity:.9}
+  .result-header p{display:none;margin:0;font-size:13px;opacity:.9}
   table{width:100%;border-collapse:collapse}
   thead th{background:#f9fafb;padding:14px 10px;font-size:12px;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;text-align:center;letter-spacing:.5px}
   tbody td{padding:14px 10px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#4b5563;text-align:center}
@@ -33,11 +33,24 @@
   .flatpickr-calendar{font-size:16px}
   .flatpickr-months .flatpickr-month{height:48px}
   .flatpickr-day{width:42px;height:36px;line-height:36px}
+
+  /* 결과 2열 레이아웃 */
+  .result-split{display:flex;gap:16px;background:#fff;border-radius:0 0 18px 18px;box-shadow:0 4px 18px rgba(0,0,0,.08);overflow:hidden}
+  .result-left{flex:1;min-width:0;border-right:1px solid #eef2f7}
+  .result-right{flex:0 0 46%;min-width:380px;max-width:520px;background:#0b1320}
+  .graph-frame{display:block;width:100%;height:720px;border:0;background:#0b1320}
+  .graph-panel{padding:8px;background:#fff;height:720px;overflow:auto}
+
+  @media (max-width: 1024px){
+    .result-split{flex-direction:column}
+    .result-right{flex:1;min-width:0;max-width:none}
+    .graph-frame{height:520px}
+  }
 </style>
 
 <div class="tide-container">
   <div class="tide-card">
-    <h2 class="tide-title">🌊 바다타임 항구 Tide/날씨 조회</h2>
+    <h2 class="tide-title">🌊 바다 항구 날씨 조회</h2>
     <form id="tide-form" class="tide-form">
       <div class="form-group">
         <label class="form-label" for="city">지역 선택</label>
@@ -76,22 +89,27 @@
       <h2 id="result-title">항구 번호 -</h2>
       <p id="result-sub">원본: -</p>
     </div>
-    <div class="tide-table-wrapper" style="background:#fff;border-radius:0 0 18px 18px;box-shadow:0 4px 18px rgba(0,0,0,.08);overflow:hidden;">
-      <table id="tide-table">
-        <thead>
-          <tr>
-            <th>시간</th>
-            <th>풍향</th>
-            <th>풍속</th>
-            <th>날씨</th>
-            <th>기온</th>
-            <th>파고/주기</th>
-          </tr>
-        </thead>
-        <tbody id="tide-tbody">
-          <tr class="loading-row"><td colspan="6">데이터를 불러오는 중...</td></tr>
-        </tbody>
-      </table>
+    <div class="result-split">
+      <div class="result-left">
+        <table id="tide-table">
+          <thead>
+            <tr>
+              <th>시간</th>
+              <th>풍향</th>
+              <th>풍속</th>
+              <th>날씨</th>
+              <th>기온</th>
+              <th>파고/주기</th>
+            </tr>
+          </thead>
+          <tbody id="tide-tbody">
+            <tr class="loading-row"><td colspan="6">데이터를 불러오는 중...</td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="result-right">
+        <div id="graph-panel" class="graph-panel"></div>
+      </div>
     </div>
   </div>
 </div>
@@ -100,6 +118,12 @@
 <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
 <script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ko.js"></script>
+
+<!-- amCharts v4 (for tide graph rendering) -->
+<script src="https://cdn.amcharts.com/lib/4/core.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/charts.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/themes/animated.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/lang/ko_KR.js"></script>
 
 <script>
 // 템플릿 데이터
@@ -114,6 +138,7 @@ document.addEventListener('DOMContentLoaded', () => {
   const subEl = document.getElementById('result-sub');
   const dateEl = document.getElementById('date');
   const openBtn = document.getElementById('open-cal');
+  const graphPanel = document.getElementById('graph-panel');
 
   // Flatpickr init: yyyy-mm-dd, Korean weekdays, today default
   const fp = flatpickr(dateEl, {
@@ -162,23 +187,41 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const dateStr = dateEl.value; // YYYY-MM-DD
     resultWrap.style.display = 'block';
-    titleEl.textContent = `${portName} (ID ${portId})`;
+    titleEl.textContent = `${portName}`;
     subEl.textContent = dateStr || '요청 중...';
     tbody.innerHTML = '<tr class="loading-row"><td colspan="6">불러오는 중...</td></tr>';
     try {
       const qs = new URLSearchParams({ port_id: String(portId), date: dateStr || '' });
       const resp = await fetch(`/api/tide?${qs.toString()}`);
-      if(!resp.ok) throw new Error('요청 실패');
+      if(!resp.ok) throw new Error('10일 이후 날씨는 조회되지 않습니다.');
       const data = await resp.json();
       if(data.error){
         throw new Error(data.error);
       }
-      subEl.textContent = (dateStr ? `${dateStr} · ` : '') + (data.source_url || '원본 URL 정보 없음');
+      // 부제목: 날짜 + tide 원본 링크
+      const tideUrl = `https://www.badatime.com/${portId}/tide/${dateStr}`;
+      subEl.innerHTML = `${dateStr} · <a href="${tideUrl}" target="_blank" rel="noopener">${tideUrl}</a>`;
+      // 우측 그래프: 파싱 API 호출로 필요한 부분만 로드
+      try {
+        const gresp = await fetch(`/api/tide_graph?port_id=${portId}&date=${encodeURIComponent(dateStr)}`);
+        if (!gresp.ok) throw new Error('그래프 정보를 불러올 수 없습니다.');
+        const gdata = await gresp.json();
+        if (!gdata.success) throw new Error(gdata.message || '그래프 파싱 실패');
+        graphPanel.innerHTML = (gdata.pc_html || '') + (gdata.chart_html || '');
+        if (gdata.script) {
+          const se = document.createElement('script');
+          se.type = 'text/javascript';
+          se.text = gdata.script;
+          graphPanel.appendChild(se);
+        }
+      } catch (e) {
+        graphPanel.innerHTML = `<div style="padding:12px;color:#374151;background:#fff;">그래프 정보를 불러오지 못했습니다. 새 탭에서 확인하세요.</div>`;
+      }
       renderTideRows(data.data || []);
     } catch(err){
       console.error(err);
-      tbody.innerHTML = `<tr class='empty-row'><td colspan='6'>오류: ${err.message}</td></tr>`;
-      subEl.textContent = '오류 발생';
+      tbody.innerHTML = `<tr class='empty-row'><td colspan='6'>${err.message}</td></tr>`;
+      subEl.textContent = dateStr || '';
     }
   });
 

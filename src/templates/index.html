@@ -704,6 +704,11 @@
   padding: 48px 16px;
 }
 
+.empty-cell {
+  text-align: center;
+  padding: 48px 20px;
+}
+
 .empty-state {
   text-align: center;
   color: #6b7280;
@@ -1031,14 +1036,14 @@ function renderShips(ships) {
     if (ships.length === 0) {
         tbody.innerHTML = `
             <tr class="empty-row">
-                <td colspan="6" class="empty-cell">
+                <td colspan="7" class="empty-cell">
                     <div class="empty-state">
                         <svg class="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
                             <circle cx="12" cy="12" r="3"/>
                             <path d="M12 1v6m0 6v6"/>
                             <path d="m1 12 6 0m6 0 6 0"/>
                         </svg>
-                        <p>검색 결과가 없습니다</p>
+                        <p>등록된 배가 없습니다.</p>
                         <button type="button" class="btn-action primary" onclick="resetFilters()">전체 목록 보기</button>
                     </div>
                 </td>
@@ -1386,7 +1391,7 @@ function initializeRegisterModal() {
             setTimeout(()=>{ window.location.reload(); }, 1000);
         })
         .catch(err => {
-            console.error(err);
+            console.error('오류:', err);
             const errorMessage = isEditMode ? '수정 중 오류가 발생했습니다.' : '등록 중 오류가 발생했습니다.';
             alert(errorMessage);
             if (submitBtn) submitBtn.disabled = false;
@@ -1462,7 +1467,7 @@ function handleFileUpload(event) {
         }
     })
     .catch(error => {
-        console.error('Error:', error);
+        console.error('오류:', error);
         alert('업로드 중 오류가 발생했습니다.');
     })
     .finally(() => {

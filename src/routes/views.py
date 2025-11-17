@@ -39,13 +39,13 @@ def download_excel():
     ws = wb.active
     ws.title = "Registered Boats"
     
-    # Add header row
-    headers = ["No", "지역", "항구", "등록된 배", "URL"]
+    # Add header row (비고 포함)
+    headers = ["No", "지역", "항구", "등록된 배", "URL", "비고"]
     ws.append(headers)
     
     # Add data rows
     for i, boat in enumerate(boats, start=1):
-        row = [i, boat.city, boat.port, boat.name, boat.url]
+        row = [i, boat.city, boat.port, boat.name, boat.url, (boat.note or '')]
         ws.append(row)
         
     # Create a virtual file to save the workbook
@@ -973,13 +973,14 @@ def upload_excel():
             workbook = openpyxl.load_workbook(file)
             sheet = workbook.active
 
-            # Get existing boat names to check for duplicates
-            existing_names = {b.name for b in Boat.query.all()}
+            # Map existing boats by name for updates
+            existing_by_name = {b.name: b for b in Boat.query.all()}
             
             new_boats_count = 0
+            updated_boats_count = 0
             # Iterate over rows, skipping the header (row 1)
             for row in sheet.iter_rows(min_row=2, values_only=True):
-                # Column order from download_excel: No, 지역, 항구, 등록된 배, URL
+                # Column order from download_excel: No, 지역, 항구, 등록된 배, URL, 비고
                 # We ignore 'No' (index 0)
                 if len(row) < 5:
                     continue # Skip malformed rows
@@ -988,24 +989,40 @@ def upload_excel():
                 port = row[2]
                 name = row[3]
                 url = row[4]
+                note = row[5] if len(row) > 5 else None
 
                 # Basic validation
                 if not all([city, port, name, url]):
                     current_app.logger.warning(f"Skipping row due to missing data: {row}")
                     continue
 
-                if name not in existing_names:
-                    new_boat = Boat(name=name, url=url, city=city, port=port)
+                existing = existing_by_name.get(name)
+                if not existing:
+                    new_boat = Boat(name=name, url=url, city=city, port=port, note=note)
                     db.session.add(new_boat)
-                    existing_names.add(name) # Avoid duplicates from within the file
+                    existing_by_name[name] = new_boat  # track to avoid duplicates
                     new_boats_count += 1
+                else:
+                    # Update existing boat fields (including 비고)
+                    changed = False
+                    if existing.city != city and city:
+                        existing.city = city; changed = True
+                    if existing.port != port and port:
+                        existing.port = port; changed = True
+                    if existing.url != url and url:
+                        existing.url = url; changed = True
+                    # note can be empty string; update even if '' provided
+                    if note is not None and existing.note != note:
+                        existing.note = note; changed = True
+                    if changed:
+                        updated_boats_count += 1
             
             db.session.commit()
             
-            if new_boats_count > 0:
-                message = f'성공: {new_boats_count}척의 새로운 배를 등록했습니다.'
+            if new_boats_count > 0 or updated_boats_count > 0:
+                message = f'성공: 신규 {new_boats_count}척, 업데이트 {updated_boats_count}척 처리했습니다.'
             else:
-                message = '추가할 새로운 배가 없습니다. 모든 배가 이미 등록되어 있습니다.'
+                message = '변경 사항이 없습니다. 모든 배가 이미 최신입니다.'
 
             return jsonify({'success': True, 'message': message})
 

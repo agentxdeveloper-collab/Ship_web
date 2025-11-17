@@ -291,6 +291,12 @@
     align-items: center;
   }
 
+  .popup-header h3 {
+    margin: 0;
+    font-size: 24px;
+    font-weight: 700;
+  }
+
   .popup-close {
     background: none;
     border: none;
@@ -502,59 +508,7 @@
       });
     }
 
-    // 팝업 버튼 클릭 이벤트
-    document.addEventListener('click', function(e) {
-      if (e.target.classList.contains('btn-popup')) {
-        console.log('팝업 버튼 클릭됨!');
-        const city = e.target.getAttribute('data-city');
-        const port = e.target.getAttribute('data-port');
-        const date = e.target.getAttribute('data-date');
-        
-        console.log('팝업 데이터:', { city, port, date });
-        
-        const popup = document.getElementById('weather-popup');
-        const title = document.getElementById('popup-title');
-        const content = document.getElementById('popup-weather-content');
-        
-        if (popup && title && content) {
-          title.textContent = port + ' 날씨/물때 정보 (' + date + ')';
-          content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">로딩 중...</div>';
-          popup.style.display = 'block';
-          
-          // 실제 데이터 로드
-          loadWeatherData(city, port, date, content);
-        } else {
-          console.error('팝업 요소를 찾을 수 없습니다.');
-        }
-      }
-    });
-    
-    // 팝업 닫기 기능
-    window.closeWeatherPopup = function() {
-      const popup = document.getElementById('weather-popup');
-      if (popup) {
-        popup.style.display = 'none';
-      }
-    };
-    
-    // ESC 키로 팝업 닫기
-    document.addEventListener('keydown', function(e) {
-      if (e.key === 'Escape') {
-        closeWeatherPopup();
-      }
-    });
-    
-    // 팝업 배경 클릭으로 닫기
-    const popup = document.getElementById('weather-popup');
-    if (popup) {
-      popup.addEventListener('click', function(e) {
-        if (e.target === this) {
-          closeWeatherPopup();
-        }
-      });
-    }
-    
-    // 날씨 데이터 로드 함수
+    // 날씨 데이터 로드 함수 (전역 스코프의 fetchWeatherData를 사용)
     async function loadWeatherData(city, port, date, contentEl) {
       try {
         const BADA_PORT_IDS = {
@@ -821,6 +775,12 @@
       return;
     }
     
+    // 이미 팝업이 열려있으면 무시
+    if (popup.style.display === 'block' && content.querySelector('#popup-graph-panel')) {
+      console.log('팝업이 이미 열려있음, 무시'); // 디버깅용
+      return;
+    }
+    
     title.textContent = port + ' 날씨/물때 정보 (' + date + ')';
     content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">로딩 중...</div>';
     popup.style.display = 'block';
@@ -893,35 +853,30 @@
       console.log('API 응답 데이터:', data); // 디버깅용
       if (data.error) throw new Error(data.error);
       
-      // 그래프 데이터도 가져오기
+      // 그래프 데이터도 가져오기 (weather.html과 동일한 방식)
       console.log('그래프 API 호출:', '/api/tide_graph?port_id=' + portId + '&date=' + encodeURIComponent(date)); // 디버깅용
       const gresp = await fetch('/api/tide_graph?port_id=' + portId + '&date=' + encodeURIComponent(date));
       let graphHtml = '';
+      let graphScript = null;
       if (gresp.ok) {
         const gdata = await gresp.json();
         console.log('그래프 API 응답:', gdata); // 디버깅용
         if (gdata.success) {
           graphHtml = (gdata.pc_html || '') + (gdata.chart_html || '');
+          graphScript = gdata.script; // 스크립트는 별도로 저장
           console.log('그래프 HTML 길이:', graphHtml.length); // 디버깅용
-          // 스크립트는 복잡하므로 나중에 처리
         }
       } else {
         console.error('그래프 API 에러:', gresp.status, gresp.statusText);
       }
       
-      // weather.html과 동일한 tide-result 테이블 형태로 생성
+      // weather.html과 동일한 tide-result 테이블 형태로 생성 (헤더는 생략하여 중복 제거)
       const tideUrl = 'https://www.badatime.com/' + portId + '/tide/' + date;
-      
+
       let resultHtml = '<div style="position: relative; width: 100%; max-width: 1200px; margin: 0 auto;">';
-      
-      // 결과 헤더 (weather.html의 result-header와 동일)
-      resultHtml += '<div style="background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%); color: #fff; padding: 15px 0; border-radius: 18px 18px 0 0; text-align: center;">';
-      resultHtml += '<h2 style="margin: 0; font-size: 22px; font-weight: 700;">' + port + ' (' + date + ')</h2>';
-      resultHtml += '<p style="margin: 0; font-size: 13px; opacity: 0.9;">' + date + ' · <a href="' + tideUrl + '" target="_blank" rel="noopener" style="color: #fff; text-decoration: underline;">' + tideUrl + '</a></p>';
-      resultHtml += '</div>';
-      
-      // 2열 레이아웃 시작 (weather.html의 result-split과 동일)
-      resultHtml += '<div style="display: flex; gap: 16px; background: #fff; border-radius: 0 0 18px 18px; box-shadow: 0 4px 18px rgba(0,0,0,.08); overflow: hidden; min-height: 600px;">';
+
+      // 2열 레이아웃 시작 (weather.html의 result-split과 동일) — 헤더를 빼므로 둥근 모서리를 전체에 적용
+      resultHtml += '<div style="display: flex; gap: 16px; background: #fff; border-radius: 18px; box-shadow: 0 4px 18px rgba(0,0,0,.08); overflow: hidden; min-height: 600px;">';
       
       // 좌측 테이블 영역 (weather.html의 result-left와 동일)
       resultHtml += '<div style="flex: 1; min-width: 0; border-right: 1px solid #eef2f7; overflow: visible;">';
@@ -983,7 +938,7 @@
       
       // 우측 그래프 영역 (weather.html의 result-right와 동일)
       resultHtml += '<div style="flex: 1; min-width: 0; background: #fff; overflow: visible;">';
-      resultHtml += '<div style="padding: 8px; background: #fff; height: 600px; overflow: visible;">';
+      resultHtml += '<div id="popup-graph-panel" style="padding: 8px; background: #fff; height: 600px; overflow: visible;">';
       resultHtml += graphHtml || '<div style="padding: 20px; color: #6b7280; text-align: center;">그래프 정보를 불러올 수 없습니다.</div>';
       resultHtml += '</div>';
       resultHtml += '</div>';
@@ -992,6 +947,27 @@
       resultHtml += '</div>'; // 전체 컨테이너 종료
       
       contentEl.innerHTML = resultHtml;
+      
+      // weather.html과 동일하게 스크립트 실행 (그래프 렌더링)
+      // DOM이 완전히 업데이트된 후 스크립트 실행하도록 setTimeout 사용
+      if (graphScript) {
+        console.log('그래프 스크립트 준비됨, 길이:', graphScript.length); // 디버깅용
+        setTimeout(function() {
+          const graphPanel = document.getElementById('popup-graph-panel');
+          if (graphPanel) {
+            console.log('그래프 패널 찾음:', graphPanel); // 디버깅용
+            const se = document.createElement('script');
+            se.type = 'text/javascript';
+            se.text = graphScript;
+            graphPanel.appendChild(se);
+            console.log('그래프 스크립트 실행됨'); // 디버깅용
+          } else {
+            console.error('그래프 패널을 찾을 수 없음!'); // 디버깅용
+          }
+        }, 100); // 100ms 지연
+      } else {
+        console.log('그래프 스크립트가 없음'); // 디버깅용
+      }
       
     } catch (error) {
       console.error('fetchWeatherData 에러:', error); // 디버깅용
@@ -1003,6 +979,8 @@
   document.addEventListener('click', function(e) {
     console.log('클릭 이벤트:', e.target, 'class:', e.target.className); // 디버깅용
     if (e.target.classList.contains('btn-popup')) {
+      e.preventDefault();
+      e.stopPropagation();
       console.log('팝업 버튼 클릭됨!'); // 디버깅용
       const city = e.target.getAttribute('data-city');
       const port = e.target.getAttribute('data-port');

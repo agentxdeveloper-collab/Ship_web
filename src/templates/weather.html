@@ -1,22 +1,25 @@
 {% extends "base.html" %}
 {% block content %}
 <style>
-  .tide-container{max-width:1200px;margin:24px auto;padding:0 12px}
+  .tide-container{max-width:1300px;margin:24px auto;padding:0 12px}
   .tide-card{background:#fff;border-radius:18px;box-shadow:0 4px 18px rgba(0,0,0,.08);padding:28px;margin-bottom:28px}
   .tide-title{font-size:22px;font-weight:700;margin:0 0 18px;color:#1f2937}
   .tide-form{display:flex;gap:16px;flex-wrap:wrap;align-items:flex-end}
   .tide-form .form-group{flex:1;min-width:180px}
   .form-group label{display:block;font-size:18px;font-weight:700;color:#374151;margin-bottom:6px}
   /* Reuse register form-control, but larger for weather */
-  .tide-form .form-control{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:18px;box-sizing:border-box}
+  .tide-form .form-control{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:18px;box-sizing:border-box;outline:none}
+  .tide-form .form-control:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 1px #0d9488}
+  .tide-form select.form-control{appearance:none;background-image:url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%236b7280' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='m6 8 4 4 4-4'/%3e%3c/svg%3e");background-position:right 12px center;background-repeat:no-repeat;background-size:16px;outline:none}
+  .tide-form select.form-control:focus{outline:none;border:1px solid #0d9488}
   .btn-fetch{padding:14px 32px;background:#0d9488;color:#fff;font-weight:700;font-size:18px;border:none;border-radius:8px;cursor:pointer}
   .btn-fetch:hover{background:#0f766e}
-  .result-header{background:linear-gradient(135deg,#06b6d4 0%,#0e7490 100%);color:#fff;padding:15px 0;border-radius:18px 18px 0 0;text-align:center}
+  .result-header{background:linear-gradient(135deg,#06b6d4 0%,#0e7490 100%);color:#fff;padding:15px 0;border-radius:18px 18px 0 0;text-align:center;width:1300px;margin:0 auto}
   .result-header h2{margin:0;font-size:22px;font-weight:700}
   .result-header p{display:none;margin:0;font-size:13px;opacity:.9}
   table{width:100%;border-collapse:collapse}
-  thead th{background:#f9fafb;padding:14px 10px;font-size:12px;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;text-align:center;letter-spacing:.5px}
-  tbody td{padding:14px 10px;border-bottom:1px solid #f3f4f6;font-size:13px;color:#4b5563;text-align:center}
+  thead th{background:#f9fafb;padding:14px 10px;font-size:16px;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;text-align:center;letter-spacing:.5px}
+  tbody td{padding:14px 10px;border-bottom:1px solid #f3f4f6;font-size:15px;color:#4b5563;text-align:center}
   tbody tr:nth-child(even){background:#f9fafb}
   tbody tr:hover{background:#f3f4f6}
   .time-cell{font-weight:600;color:#111827;font-size:15px}
@@ -35,11 +38,11 @@
   .flatpickr-day{width:42px;height:36px;line-height:36px}
 
   /* 결과 2열 레이아웃 */
-  .result-split{display:flex;gap:16px;background:#fff;border-radius:0 0 18px 18px;box-shadow:0 4px 18px rgba(0,0,0,.08);overflow:hidden}
-  .result-left{flex:1;min-width:0;border-right:1px solid #eef2f7}
-  .result-right{flex:0 0 46%;min-width:380px;max-width:520px;background:#0b1320}
-  .graph-frame{display:block;width:100%;height:720px;border:0;background:#0b1320}
-  .graph-panel{padding:8px;background:#fff;height:720px;overflow:auto}
+  .result-split{display:flex;gap:16px;background:#fff;border-radius:0 0 18px 18px;box-shadow:0 4px 18px rgba(0,0,0,.08);overflow:hidden;width:1300px;margin:0 auto;min-height:800px}
+  .result-left{flex:1;min-width:0;border-right:1px solid #eef2f7;overflow:visible}
+  .result-right{flex:1;min-width:0;background:#fff;overflow:visible}
+  .graph-frame{display:block;width:100%;height:800px;border:0;background:#0b1320}
+  .graph-panel{padding:8px;background:#fff;height:800px;overflow:visible}
 
   @media (max-width: 1024px){
     .result-split{flex-direction:column}
@@ -84,7 +87,7 @@
     <p class="note">※ 바다타임 week_container를 파싱하여 시간표를 구성합니다. 항구를 선택하면 자동으로 port_id를 매핑하여 조회합니다.</p>
   </div>
 
-  <div id="tide-result" style="display:none;">
+  <div id="tide-result" style="display:none;position:relative;left:50%;transform:translateX(-50%);width:1300px;">
     <div class="result-header">
       <h2 id="result-title">항구 번호 -</h2>
       <p id="result-sub">원본: -</p>
@@ -187,7 +190,7 @@ document.addEventListener('DOMContentLoaded', () => {
     }
     const dateStr = dateEl.value; // YYYY-MM-DD
     resultWrap.style.display = 'block';
-    titleEl.textContent = `${portName}`;
+    titleEl.textContent = `${portName} (${dateStr})`;
     subEl.textContent = dateStr || '요청 중...';
     tbody.innerHTML = '<tr class="loading-row"><td colspan="6">불러오는 중...</td></tr>';
     try {
@@ -235,10 +238,20 @@ document.addEventListener('DOMContentLoaded', () => {
       const tr = document.createElement('tr');
       const weatherDisplay = r.weather_icon_url ? `<img src='${r.weather_icon_url}' alt='' width='28' style='vertical-align:middle;margin-right:4px;'>${r.weather_text||''}` : (r.weather_text||'');
       const windDirDisplay = r.wind_dir_icon_url ? `<img src='${r.wind_dir_icon_url}' alt='' width='16' style='vertical-align:middle;margin-right:4px;'>${r.wind_dir||''}` : (r.wind_dir||'');
+      
+      // 풍속 색상 처리
+      let windSpeedColor = '#4b5563'; // 기본 색상
+      const windSpeed = parseFloat(r.wind_speed || '0');
+      if (windSpeed >= 5.0 && windSpeed <= 7.9) {
+        windSpeedColor = '#f1c40f';
+      } else if (windSpeed >= 8.0 && windSpeed <= 15.0) {
+        windSpeedColor = '#c0392b';
+      }
+      
       tr.innerHTML = `
         <td class='time-cell'>${r.time || ''}</td>
         <td>${windDirDisplay}</td>
-        <td>${r.wind_speed || ''}</td>
+        <td style='color:${windSpeedColor}'>${r.wind_speed || ''}</td>
         <td>${weatherDisplay}</td>
         <td>${r.temperature || ''}</td>
         <td>${r.wave_height || ''}</td>`;

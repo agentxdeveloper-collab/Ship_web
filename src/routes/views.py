@@ -870,10 +870,21 @@ def api_tide_graph():
 
         # 안전을 위해 외부 참조가 상대경로일 경우 절대경로로 고치기(이미지/아이콘 등)
         def absolutize_urls(html_text: str) -> str:
-            return re.sub(r'(["\'])(\/\/(?:images|img)\.badatime\.com[^"\']*)(["\'])', r"http:\1\2\3", html_text)
+            # badatime.com 이미지를 절대경로로 변경
+            html_text = re.sub(r'(["\'])(\/\/(?:images|img)\.badatime\.com[^"\']*)(["\'])', r"https:\1\2\3", html_text)
+            # /img/icon/ 경로를 로컬 static 경로로 변경 - 더 포괄적인 정규식 사용
+            html_text = re.sub(r'(["\'])\/img\/icon\/(sunrise|sunset)\.svg(["\'])', r'\1/img/\2.svg\3', html_text)
+            return html_text
+        
+        def absolutize_script_urls(script_text: str) -> str:
+            # 스크립트 내의 이미지 경로도 변경
+            script_text = re.sub(r'(["\'])\/img\/icon\/(sunrise|sunset)\.svg(["\'])', r'\1/img/\2.svg\3', script_text)
+            return script_text
 
         pc_html = absolutize_urls(pc_html)
         chart_html = absolutize_urls(chart_html)
+        if script_text:
+            script_text = absolutize_script_urls(script_text)
 
     return jsonify({
         'success': True,

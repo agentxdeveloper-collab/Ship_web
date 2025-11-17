@@ -156,8 +156,11 @@
 
   /* 테이블 스타일 */
   .results-section {
-    max-width: 1400px;
+    width: 1300px;
     margin: 30px auto;
+    position: relative;
+    left: 50%;
+    transform: translateX(-50%);
   }
 
   .results-title {
@@ -237,6 +240,75 @@
   .badge-maintenance {
     background-color: #f3f4f6;
     color: #6b7280;
+  }
+
+  /* 팝업 버튼 스타일 */
+  .btn-popup {
+    padding: 6px 12px;
+    background: #0d9488;
+    color: white;
+    border: none;
+    border-radius: 6px;
+    font-size: 12px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .btn-popup:hover {
+    background: #0f766e;
+  }
+
+  /* 팝업 모달 스타일 */
+  .weather-popup {
+    display: none;
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.5);
+    z-index: 10000;
+    overflow-y: auto;
+  }
+
+  .popup-content {
+    position: relative;
+    margin: 20px auto;
+    max-width: 95%;
+    width: 1400px;
+    background: white;
+    border-radius: 18px;
+    box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+  }
+
+  .popup-header {
+    background: linear-gradient(135deg,#06b6d4 0%,#0e7490 100%);
+    color: white;
+    padding: 20px;
+    border-radius: 18px 18px 0 0;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+  }
+
+  .popup-close {
+    background: none;
+    border: none;
+    color: white;
+    font-size: 24px;
+    cursor: pointer;
+    padding: 0;
+    width: 30px;
+    height: 30px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+  }
+
+  .popup-body {
+    padding: 0;
+    max-height: calc(100vh - 120px);
+    overflow-y: auto;
   }
 </style>
 
@@ -347,6 +419,9 @@
           <th style="width: 92px;">
             URL
           </th>
+          <th style="width: 120px; text-align: center;">
+            날씨/물때
+          </th>
         </tr>
       </thead>
       <tbody id="results-body">
@@ -380,11 +455,16 @@
                 -
               {% endif %}
             </td>
+            <td style="text-align: center;">
+              <button type="button" class="btn-popup" data-city="{{ entry.city or '' }}" data-port="{{ entry.port or '' }}" data-date="{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day) }}">
+                팝업 보기
+              </button>
+            </td>
           </tr>
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="8" style="padding: 40px; text-align: center; color: #9ca3af;">
+          <td colspan="9" style="padding: 40px; text-align: center; color: #9ca3af;">
             조회 결과가 없습니다. 상단에서 지역과 날짜를 선택 후 조회하세요.
           </td>
         </tr>
@@ -420,6 +500,121 @@
         const btn = form.querySelector('button[type="submit"], #searchBtn');
         if(btn){ btn.disabled = true; }
       });
+    }
+
+    // 팝업 버튼 클릭 이벤트
+    document.addEventListener('click', function(e) {
+      if (e.target.classList.contains('btn-popup')) {
+        console.log('팝업 버튼 클릭됨!');
+        const city = e.target.getAttribute('data-city');
+        const port = e.target.getAttribute('data-port');
+        const date = e.target.getAttribute('data-date');
+        
+        console.log('팝업 데이터:', { city, port, date });
+        
+        const popup = document.getElementById('weather-popup');
+        const title = document.getElementById('popup-title');
+        const content = document.getElementById('popup-weather-content');
+        
+        if (popup && title && content) {
+          title.textContent = port + ' 날씨/물때 정보 (' + date + ')';
+          content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">로딩 중...</div>';
+          popup.style.display = 'block';
+          
+          // 실제 데이터 로드
+          loadWeatherData(city, port, date, content);
+        } else {
+          console.error('팝업 요소를 찾을 수 없습니다.');
+        }
+      }
+    });
+    
+    // 팝업 닫기 기능
+    window.closeWeatherPopup = function() {
+      const popup = document.getElementById('weather-popup');
+      if (popup) {
+        popup.style.display = 'none';
+      }
+    };
+    
+    // ESC 키로 팝업 닫기
+    document.addEventListener('keydown', function(e) {
+      if (e.key === 'Escape') {
+        closeWeatherPopup();
+      }
+    });
+    
+    // 팝업 배경 클릭으로 닫기
+    const popup = document.getElementById('weather-popup');
+    if (popup) {
+      popup.addEventListener('click', function(e) {
+        if (e.target === this) {
+          closeWeatherPopup();
+        }
+      });
+    }
+    
+    // 날씨 데이터 로드 함수
+    async function loadWeatherData(city, port, date, contentEl) {
+      try {
+        const BADA_PORT_IDS = {
+          '남항(인천항)': 158, '연안부두': 158, '영흥항': 151, '오이도항': 380,
+          '전곡항': 618, '평택항': 149, '장고항': 370, '삼길포항': 144,
+          '마검포항': 1400, '모항항': 134, '영목항': 354, '신진도항': 965,
+          '오천항': 355, '구매항': 1385, '대천항': 126, '무창포항': 236,
+          '남당항': 356, '홍원항': 523, '비응항': 118, '야미도항': 348,
+          '격포항': 430, '돌산항': 270, '국동항': 271, '소호항': 826,
+          '신추항': 885, '종포항': 886, '녹동방파제': 443
+        };
+        
+        const portId = BADA_PORT_IDS[port];
+        if (!portId) {
+          throw new Error('해당 항구의 바다타임 ID를 찾을 수 없습니다: ' + port);
+        }
+        
+        const response = await fetch('/api/tide?port_id=' + portId + '&date=' + date);
+        if (!response.ok) {
+          throw new Error('API 호출 실패: ' + response.status);
+        }
+        
+        const data = await response.json();
+        if (data.error) {
+          throw new Error(data.error);
+        }
+        
+        // 간단한 테이블 표시
+        let html = '<table style="width: 100%; border-collapse: collapse;">';
+        html += '<thead><tr style="background: #f9fafb;">';
+        html += '<th style="padding: 12px; border: 1px solid #e5e7eb;">시간</th>';
+        html += '<th style="padding: 12px; border: 1px solid #e5e7eb;">풍향</th>';
+        html += '<th style="padding: 12px; border: 1px solid #e5e7eb;">풍속</th>';
+        html += '<th style="padding: 12px; border: 1px solid #e5e7eb;">날씨</th>';
+        html += '<th style="padding: 12px; border: 1px solid #e5e7eb;">기온</th>';
+        html += '<th style="padding: 12px; border: 1px solid #e5e7eb;">파고</th>';
+        html += '</tr></thead><tbody>';
+        
+        if (data.data && data.data.length > 0) {
+          data.data.forEach(function(row) {
+            html += '<tr>';
+            html += '<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">' + (row.time || '') + '</td>';
+            html += '<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">' + (row.wind_dir || '') + '</td>';
+            html += '<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">' + (row.wind_speed || '') + '</td>';
+            html += '<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">' + (row.weather_text || '') + '</td>';
+            html += '<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">' + (row.temperature || '') + '</td>';
+            html += '<td style="padding: 8px; border: 1px solid #e5e7eb; text-align: center;">' + (row.wave_height || '') + '</td>';
+            html += '</tr>';
+          });
+        } else {
+          html += '<tr><td colspan="6" style="padding: 20px; text-align: center;">데이터가 없습니다.</td></tr>';
+        }
+        
+        html += '</tbody></table>';
+        contentEl.innerHTML = html;
+        
+      } catch (error) {
+        console.error('데이터 로드 에러:', error);
+        contentEl.innerHTML = '<div style="padding: 20px; color: red; text-align: center;">에러: ' + error.message + '</div>';
+      }
     }
 
     // ====== 정렬 동작 로직 (행 단위로 변경) ======
@@ -540,6 +735,27 @@
         }
         tr.appendChild(tdUrl);
 
+        // 날씨/물때 팝업
+        const tdWeather = document.createElement('td');
+        tdWeather.style.textAlign = 'center';
+        const popupBtn = document.createElement('button');
+        popupBtn.className = 'btn-popup';
+        popupBtn.textContent = '팝업 보기';
+        popupBtn.setAttribute('data-city', r.city || '');
+        popupBtn.setAttribute('data-port', r.port || '');
+        
+        // 현재 날짜 가져오기 (검색된 날짜 사용)
+        const searchForm = document.getElementById('status-form');
+        const year = searchForm ? searchForm.querySelector('input[name="year"]')?.value : new Date().getFullYear();
+        const month = searchForm ? searchForm.querySelector('input[name="month"]')?.value : (new Date().getMonth() + 1);
+        const day = searchForm ? searchForm.querySelector('input[name="day"]')?.value : new Date().getDate();
+        const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        
+        popupBtn.setAttribute('data-date', formattedDate);
+        console.log('팝업 버튼 생성:', { city: r.city, port: r.port, date: formattedDate }); // 디버깅용
+        tdWeather.appendChild(popupBtn);
+        tr.appendChild(tdWeather);
+
         frag.appendChild(tr);
       }
       tbody.innerHTML = '';
@@ -584,5 +800,254 @@
     sortBtns.forEach(b => b.addEventListener('click', handleSortClick));
     // ====== 정렬 로직 끝 ======
   });
+
+  // 날씨/물때 팝업 관련 함수들
+  function getCurrentDate() {
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const day = String(now.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  function openWeatherPopup(city, port, date) {
+    console.log('openWeatherPopup 호출됨:', { city, port, date }); // 디버깅용
+    const popup = document.getElementById('weather-popup');
+    const title = document.getElementById('popup-title');
+    const content = document.getElementById('popup-weather-content');
+    
+    if (!popup) {
+      console.error('팝업 요소를 찾을 수 없음!');
+      return;
+    }
+    
+    title.textContent = port + ' 날씨/물때 정보 (' + date + ')';
+    content.innerHTML = '<div style="text-align: center; padding: 40px; color: #6b7280;">로딩 중...</div>';
+    popup.style.display = 'block';
+    
+    console.log('팝업 표시됨'); // 디버깅용
+    
+    // 바다타임 데이터 가져오기
+    fetchWeatherData(city, port, date, content);
+  }
+
+  function closeWeatherPopup() {
+    document.getElementById('weather-popup').style.display = 'none';
+  }
+
+  async function fetchWeatherData(city, port, date, contentEl) {
+    try {
+      // views.py에서 실제 사용하는 get_bada_port_ids() 매핑 사용
+      const BADA_PORT_IDS = {
+        '남항(인천항)': 158,
+        '연안부두': 158,
+        '영흥항': 151,
+        '오이도항': 380,
+        '전곡항': 618,
+        '평택항': 149,
+        '장고항': 370,
+        '삼길포항': 144,
+        '마검포항': 1400,
+        '모항항': 134,
+        '영목항': 354,
+        '신진도항': 965,
+        '오천항': 355,
+        '구매항': 1385,
+        '대천항': 126,
+        '무창포항': 236,
+        '남당항': 356,
+        '홍원항': 523,
+        '비응항': 118,
+        '야미도항': 348,
+        '격포항': 430,
+        '돌산항': 270,
+        '국동항': 271,
+        '소호항': 826,
+        '신추항': 885,
+        '종포항': 886,
+        '녹동방파제': 443
+      };
+      
+      console.log('팝업 데이터:', { city, port, date }); // 디버깅용
+      
+      // 항구명으로 바다타임 ID 찾기
+      const portId = BADA_PORT_IDS[port];
+      if (!portId) {
+        console.error('항구 ID를 찾을 수 없음:', port, '사용 가능한 항구:', Object.keys(BADA_PORT_IDS));
+        contentEl.innerHTML = '<div style="padding: 20px; color: #ef4444;">해당 항구(' + port + ')의 날씨 정보를 찾을 수 없습니다.<br>사용 가능한 항구: ' + Object.keys(BADA_PORT_IDS).join(', ') + '</div>';
+        return;
+      }
+      
+      console.log('포트 ID 찾음:', portId, 'for', port); // 디버깅용
+      
+      // 날씨 데이터 API 호출
+      console.log('API 호출:', '/api/tide?port_id=' + portId + '&date=' + date); // 디버깅용
+      const qs = new URLSearchParams({ port_id: String(portId), date: date });
+      const resp = await fetch('/api/tide?' + qs.toString());
+      if (!resp.ok) {
+        console.error('API 응답 에러:', resp.status, resp.statusText);
+        throw new Error('날씨 데이터를 가져올 수 없습니다. (' + resp.status + ')');
+      }
+      
+      const data = await resp.json();
+      console.log('API 응답 데이터:', data); // 디버깅용
+      if (data.error) throw new Error(data.error);
+      
+      // 그래프 데이터도 가져오기
+      console.log('그래프 API 호출:', '/api/tide_graph?port_id=' + portId + '&date=' + encodeURIComponent(date)); // 디버깅용
+      const gresp = await fetch('/api/tide_graph?port_id=' + portId + '&date=' + encodeURIComponent(date));
+      let graphHtml = '';
+      if (gresp.ok) {
+        const gdata = await gresp.json();
+        console.log('그래프 API 응답:', gdata); // 디버깅용
+        if (gdata.success) {
+          graphHtml = (gdata.pc_html || '') + (gdata.chart_html || '');
+          console.log('그래프 HTML 길이:', graphHtml.length); // 디버깅용
+          // 스크립트는 복잡하므로 나중에 처리
+        }
+      } else {
+        console.error('그래프 API 에러:', gresp.status, gresp.statusText);
+      }
+      
+      // weather.html과 동일한 tide-result 테이블 형태로 생성
+      const tideUrl = 'https://www.badatime.com/' + portId + '/tide/' + date;
+      
+      let resultHtml = '<div style="position: relative; width: 100%; max-width: 1200px; margin: 0 auto;">';
+      
+      // 결과 헤더 (weather.html의 result-header와 동일)
+      resultHtml += '<div style="background: linear-gradient(135deg, #06b6d4 0%, #0e7490 100%); color: #fff; padding: 15px 0; border-radius: 18px 18px 0 0; text-align: center;">';
+      resultHtml += '<h2 style="margin: 0; font-size: 22px; font-weight: 700;">' + port + ' (' + date + ')</h2>';
+      resultHtml += '<p style="margin: 0; font-size: 13px; opacity: 0.9;">' + date + ' · <a href="' + tideUrl + '" target="_blank" rel="noopener" style="color: #fff; text-decoration: underline;">' + tideUrl + '</a></p>';
+      resultHtml += '</div>';
+      
+      // 2열 레이아웃 시작 (weather.html의 result-split과 동일)
+      resultHtml += '<div style="display: flex; gap: 16px; background: #fff; border-radius: 0 0 18px 18px; box-shadow: 0 4px 18px rgba(0,0,0,.08); overflow: hidden; min-height: 600px;">';
+      
+      // 좌측 테이블 영역 (weather.html의 result-left와 동일)
+      resultHtml += '<div style="flex: 1; min-width: 0; border-right: 1px solid #eef2f7; overflow: visible;">';
+      resultHtml += '<table style="width: 100%; border-collapse: collapse;">';
+      
+      // 테이블 헤더 (weather.html의 thead 스타일과 동일)
+      resultHtml += '<thead>';
+      resultHtml += '<tr>';
+      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">시간</th>';
+      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">풍향</th>';
+      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">풍속</th>';
+      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">날씨</th>';
+      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">기온</th>';
+      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">파고/주기</th>';
+      resultHtml += '</tr>';
+      resultHtml += '</thead>';
+      
+      // 테이블 본문
+      resultHtml += '<tbody>';
+      
+      if (data.data && data.data.length > 0) {
+        data.data.forEach((r, index) => {
+          // weather.html의 renderTideRows와 동일한 로직
+          const weatherDisplay = r.weather_icon_url ? 
+            '<img src="' + r.weather_icon_url + '" alt="" width="28" style="vertical-align:middle;margin-right:4px;">' + (r.weather_text||'') : 
+            (r.weather_text||'');
+          const windDirDisplay = r.wind_dir_icon_url ? 
+            '<img src="' + r.wind_dir_icon_url + '" alt="" width="16" style="vertical-align:middle;margin-right:4px;">' + (r.wind_dir||'') : 
+            (r.wind_dir||'');
+          
+          // weather.html과 동일한 풍속 색상 처리
+          let windSpeedColor = '#4b5563'; // 기본 색상
+          const windSpeed = parseFloat(r.wind_speed || '0');
+          if (windSpeed >= 5.0 && windSpeed <= 7.9) {
+            windSpeedColor = '#f1c40f'; // 노란색
+          } else if (windSpeed >= 8.0 && windSpeed <= 15.0) {
+            windSpeedColor = '#c0392b'; // 빨간색
+          }
+          
+          // weather.html의 tbody 스타일과 동일 (홀짝 배경, 호버 등)
+          const bgColor = (index % 2 === 0) ? '#fff' : '#f9fafb';
+          
+          resultHtml += '<tr style="background: ' + bgColor + ';" onmouseover="this.style.background=\'#f3f4f6\'" onmouseout="this.style.background=\'' + bgColor + '\'">';
+          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #111827; text-align: center; font-weight: 600;">' + (r.time || '') + '</td>'; // time-cell 클래스 스타일
+          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #4b5563; text-align: center;">' + windDirDisplay + '</td>';
+          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; text-align: center; color: ' + windSpeedColor + ';">' + (r.wind_speed || '') + '</td>';
+          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #4b5563; text-align: center;">' + weatherDisplay + '</td>';
+          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #4b5563; text-align: center;">' + (r.temperature || '') + '</td>';
+          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #4b5563; text-align: center;">' + (r.wave_height || '') + '</td>';
+          resultHtml += '</tr>';
+        });
+      } else {
+        resultHtml += '<tr class="empty-row"><td colspan="6" style="padding: 42px; font-size: 14px; color: #9ca3af; text-align: center;">데이터가 없습니다.</td></tr>';
+      }
+      
+      resultHtml += '</tbody>';
+      resultHtml += '</table>';
+      resultHtml += '</div>';
+      
+      // 우측 그래프 영역 (weather.html의 result-right와 동일)
+      resultHtml += '<div style="flex: 1; min-width: 0; background: #fff; overflow: visible;">';
+      resultHtml += '<div style="padding: 8px; background: #fff; height: 600px; overflow: visible;">';
+      resultHtml += graphHtml || '<div style="padding: 20px; color: #6b7280; text-align: center;">그래프 정보를 불러올 수 없습니다.</div>';
+      resultHtml += '</div>';
+      resultHtml += '</div>';
+      
+      resultHtml += '</div>'; // result-split 종료
+      resultHtml += '</div>'; // 전체 컨테이너 종료
+      
+      contentEl.innerHTML = resultHtml;
+      
+    } catch (error) {
+      console.error('fetchWeatherData 에러:', error); // 디버깅용
+      contentEl.innerHTML = '<div style="padding: 20px; color: #ef4444; text-align: center;">에러: ' + error.message + '<br><br>디버그 정보:<br>도시: ' + city + ', 항구: ' + port + ', 날짜: ' + date + '</div>';
+    }
+  }
+
+  // 팝업 버튼 클릭 이벤트 위임
+  document.addEventListener('click', function(e) {
+    console.log('클릭 이벤트:', e.target, 'class:', e.target.className); // 디버깅용
+    if (e.target.classList.contains('btn-popup')) {
+      console.log('팝업 버튼 클릭됨!'); // 디버깅용
+      const city = e.target.getAttribute('data-city');
+      const port = e.target.getAttribute('data-port');
+      const date = e.target.getAttribute('data-date');
+      console.log('팝업 데이터:', { city, port, date }); // 디버깅용
+      openWeatherPopup(city, port, date);
+    }
+  });
+
+  // ESC 키로 팝업 닫기
+  document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+      closeWeatherPopup();
+    }
+  });
+
+  // 팝업 배경 클릭으로 닫기
+  document.getElementById('weather-popup').addEventListener('click', function(e) {
+    if (e.target === this) {
+      closeWeatherPopup();
+    }
+  });
 </script>
+
+<!-- 날씨/물때 팝업 모달 -->
+<div id="weather-popup" class="weather-popup">
+  <div class="popup-content">
+    <div class="popup-header">
+      <h3 id="popup-title">날씨/물때 정보</h3>
+      <button type="button" class="popup-close" onclick="closeWeatherPopup()">&times;</button>
+    </div>
+    <div class="popup-body">
+      <div id="popup-weather-content">
+        <div style="text-align: center; padding: 40px; color: #6b7280;">
+          로딩 중...
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- amCharts v4 스크립트 추가 (그래프 렌더링용) -->
+<script src="https://cdn.amcharts.com/lib/4/core.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/charts.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/themes/animated.js"></script>
+<script src="https://cdn.amcharts.com/lib/4/lang/ko_KR.js"></script>
+
 {% endblock %}

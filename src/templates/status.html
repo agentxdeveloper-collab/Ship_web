@@ -854,152 +854,88 @@
 
   async function fetchWeatherData(city, port, date, contentEl) {
     try {
-      // views.py에서 실제 사용하는 get_bada_port_ids() 매핑 사용
       const BADA_PORT_IDS = {
-        '남항(인천항)': 158,
-        '연안부두': 158,
-        '영흥항': 151,
-        '오이도항': 380,
-        '전곡항': 618,
-        '평택항': 149,
-        '장고항': 370,
-        '삼길포항': 144,
-        '마검포항': 1400,
-        '모항항': 134,
-        '영목항': 354,
-        '신진도항': 965,
-        '오천항': 355,
-        '구매항': 1385,
-        '대천항': 126,
-        '무창포항': 236,
-        '남당항': 356,
-        '홍원항': 523,
-        '비응항': 118,
-        '야미도항': 348,
-        '격포항': 430,
-        '돌산항': 270,
-        '국동항': 271,
-        '소호항': 826,
-        '신추항': 885,
-        '종포항': 886,
-        '녹동방파제': 443
+        '남항(인천항)': 158,'연안부두': 158,'영흥항': 151,'오이도항': 380,'전곡항': 618,'평택항': 149,'장고항': 370,'삼길포항': 144,
+        '마검포항': 1400,'모항항': 134,'영목항': 354,'신진도항': 965,'오천항': 355,'구매항': 1385,'대천항': 126,'무창포항': 236,
+        '남당항': 356,'홍원항': 523,'비응항': 118,'야미도항': 348,'격포항': 430,'돌산항': 270,'국동항': 271,'소호항': 826,
+        '신추항': 885,'종포항': 886,'녹동방파제': 443
       };
-      
-      console.log('팝업 데이터:', { city, port, date }); // 디버깅용
-      
-      // 항구명으로 바다타임 ID 찾기
+      console.log('팝업 데이터:', { city, port, date });
       const portId = BADA_PORT_IDS[port];
       if (!portId) {
-        console.error('항구 ID를 찾을 수 없음:', port, '사용 가능한 항구:', Object.keys(BADA_PORT_IDS));
-        contentEl.innerHTML = '<div style="padding: 20px; color: #ef4444;">해당 항구(' + port + ')의 날씨 정보를 찾을 수 없습니다.<br>사용 가능한 항구: ' + Object.keys(BADA_PORT_IDS).join(', ') + '</div>';
+        contentEl.innerHTML = '<div style="padding:20px;color:#ef4444;">항구 ID를 찾을 수 없습니다: ' + port + '</div>';
         return;
       }
-      
-      console.log('포트 ID 찾음:', portId, 'for', port); // 디버깅용
-      
-      // 날씨 데이터 API 호출
-      console.log('API 호출:', '/api/tide?port_id=' + portId + '&date=' + date); // 디버깅용
-      const qs = new URLSearchParams({ port_id: String(portId), date: date });
-      const resp = await fetch('/api/tide?' + qs.toString());
-      if (!resp.ok) {
-        console.error('API 응답 에러:', resp.status, resp.statusText);
-        throw new Error('날씨 데이터를 가져올 수 없습니다. (' + resp.status + ')');
-      }
-      
-      const data = await resp.json();
-      console.log('API 응답 데이터:', data); // 디버깅용
-      if (data.error) throw new Error(data.error);
-      
-      // 그래프 데이터도 가져오기 (weather.html과 동일한 방식)
-      console.log('그래프 API 호출:', '/api/tide_graph?port_id=' + portId + '&date=' + encodeURIComponent(date)); // 디버깅용
-      const gresp = await fetch('/api/tide_graph?port_id=' + portId + '&date=' + encodeURIComponent(date));
-      let graphHtml = '';
-      let graphScript = null;
-      if (gresp.ok) {
-        const gdata = await gresp.json();
-        console.log('그래프 API 응답:', gdata); // 디버깅용
-        if (gdata.success) {
-          graphHtml = (gdata.pc_html || '') + (gdata.chart_html || '');
-          graphScript = gdata.script; // 스크립트는 별도로 저장
-          console.log('그래프 HTML 길이:', graphHtml.length); // 디버깅용
+
+      // 1) 표 데이터 시도 (실패해도 계속 진행)
+      let tideData = { data: [] };
+      let tideError = null;
+      try {
+        const qs = new URLSearchParams({ port_id: String(portId), date });
+        const resp = await fetch('/api/tide?' + qs.toString());
+        if (!resp.ok) {
+          // 10일 이후 조회 제한 안내 문구로 통일
+          tideError = '10일 이후에 날씨 정보는 조회가 안됩니다.';
+        } else {
+          const json = await resp.json();
+            if (json.error) tideError = json.error; else tideData = json;
         }
-      } else {
-        console.error('그래프 API 에러:', gresp.status, gresp.statusText);
+      } catch (e) {
+        tideError = '표 요청 실패: ' + e.message;
       }
-      
-      // weather.html과 동일한 tide-result 테이블 형태로 생성 (헤더는 생략하여 중복 제거)
 
-      const tideUrl = 'https://www.badatime.com/' + portId + '/tide/' + date;
+      // 2) 그래프 데이터 (항상 시도)
+      let graphHtml = ''; let graphScript = null;
+      try {
+        const gresp = await fetch('/api/tide_graph?port_id=' + portId + '&date=' + encodeURIComponent(date));
+        if (gresp.ok) {
+          const gdata = await gresp.json();
+          if (gdata.success) {
+            graphHtml = (gdata.pc_html || '') + (gdata.chart_html || '');
+            graphScript = gdata.script;
+          }
+        }
+      } catch (ge) {
+        console.warn('그래프 로드 실패:', ge);
+      }
 
-      // weather.html과 완전히 동일한 구조/클래스명으로 팝업 생성
-      let resultHtml = '';
-      resultHtml += '<div class="result-split">';
-      resultHtml += '  <div class="result-left">';
-      resultHtml += '    <table id="tide-table">';
-      resultHtml += '      <thead><tr>';
-      resultHtml += '        <th>시간</th><th>풍향</th><th>풍속</th><th>날씨</th><th>기온</th><th>파고/주기</th>';
-      resultHtml += '      </tr></thead>';
-      resultHtml += '      <tbody id="tide-tbody">';
-      if (data.data && data.data.length > 0) {
-        data.data.forEach((r, index) => {
-          const weatherDisplay = r.weather_icon_url ?
-            '<img src="' + r.weather_icon_url + '" alt="" width="28" style="vertical-align:middle;margin-right:4px;">' + (r.weather_text||'') :
-            (r.weather_text||'');
-          const windDirDisplay = r.wind_dir_icon_url ?
-            '<img src="' + r.wind_dir_icon_url + '" alt="" width="16" style="vertical-align:middle;margin-right:4px;">' + (r.wind_dir||'') :
-            (r.wind_dir||'');
+      // 3) HTML 구성
+      let resultHtml = '<div class="result-split">';
+      resultHtml += ' <div class="result-left"><table id="tide-table"><thead><tr>' +
+        '<th>시간</th><th>풍향</th><th>풍속</th><th>날씨</th><th>기온</th><th>파고/주기</th>' +
+        '</tr></thead><tbody id="tide-tbody">';
+      if (!tideError && tideData.data && tideData.data.length) {
+        tideData.data.forEach((r, idx) => {
+          const weatherDisplay = r.weather_icon_url ? '<img src="' + r.weather_icon_url + '" alt="" width="28" style="vertical-align:middle;margin-right:4px;">' + (r.weather_text||'') : (r.weather_text||'');
+          const windDirDisplay = r.wind_dir_icon_url ? '<img src="' + r.wind_dir_icon_url + '" alt="" width="16" style="vertical-align:middle;margin-right:4px;">' + (r.wind_dir||'') : (r.wind_dir||'');
           let windSpeedColor = '#4b5563';
-          const windSpeed = parseFloat(r.wind_speed || '0');
-          if (windSpeed >= 5.0 && windSpeed <= 7.9) windSpeedColor = '#f1c40f';
-          else if (windSpeed >= 8.0 && windSpeed <= 15.0) windSpeedColor = '#c0392b';
-          const bgColor = (index % 2 === 0) ? '#fff' : '#f9fafb';
-          resultHtml += `<tr style="background: ${bgColor};" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='${bgColor}'">`;
-          resultHtml += `<td class="time-cell">${r.time || ''}</td>`;
-          resultHtml += `<td>${windDirDisplay}</td>`;
-          resultHtml += `<td style="color:${windSpeedColor}">${r.wind_speed || ''}</td>`;
-          resultHtml += `<td>${weatherDisplay}</td>`;
-          resultHtml += `<td>${r.temperature || ''}</td>`;
-          resultHtml += `<td>${r.wave_height || ''}</td>`;
-          resultHtml += '</tr>';
+          const ws = parseFloat(r.wind_speed || '0');
+          if (ws >= 5 && ws <= 7.9) windSpeedColor = '#f1c40f'; else if (ws >= 8 && ws <= 15) windSpeedColor = '#c0392b';
+          const bg = (idx % 2 === 0) ? '#fff' : '#f9fafb';
+          resultHtml += `<tr style="background:${bg}" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='${bg}'">` +
+            `<td class='time-cell'>${r.time||''}</td><td>${windDirDisplay}</td>` +
+            `<td style='color:${windSpeedColor}'>${r.wind_speed||''}</td><td>${weatherDisplay}</td>` +
+            `<td>${r.temperature||''}</td><td>${r.wave_height||''}</td></tr>`;
         });
       } else {
-        resultHtml += '<tr><td colspan="6">데이터가 없습니다.</td></tr>';
+        const msg = tideError ? `<span style='color:#dc2626'>${tideError}</span>` : '데이터가 없습니다.';
+        resultHtml += `<tr><td colspan='6' style='padding:24px;text-align:center;'>${msg}</td></tr>`;
       }
-      resultHtml += '      </tbody>';
-      resultHtml += '    </table>';
-      resultHtml += '  </div>';
-      resultHtml += '  <div class="result-right">';
-      resultHtml += '    <div id="graph-panel" class="graph-panel">';
-      resultHtml += graphHtml || '<div style="padding: 20px; color: #6b7280; text-align: center;">그래프 정보를 불러올 수 없습니다.</div>';
-      resultHtml += '    </div>';
-      resultHtml += '  </div>';
-      resultHtml += '</div>';
+      resultHtml += '</tbody></table></div>';
+      resultHtml += ' <div class="result-right"><div id="graph-panel" class="graph-panel">' +
+        (graphHtml || '<div style="padding:20px;text-align:center;color:#6b7280;">그래프 정보를 불러올 수 없습니다.</div>') +
+        '</div></div></div>';
       contentEl.innerHTML = resultHtml;
-      
-      // weather.html과 동일하게 스크립트 실행 (그래프 렌더링)
-      // DOM이 완전히 업데이트된 후 스크립트 실행하도록 setTimeout 사용
+
+      // 4) 그래프 스크립트 실행
       if (graphScript) {
-        console.log('그래프 스크립트 준비됨, 길이:', graphScript.length); // 디버깅용
-        setTimeout(function() {
-          const graphPanel = document.getElementById('graph-panel');
-          if (graphPanel) {
-            console.log('그래프 패널 찾음:', graphPanel); // 디버깅용
-            const se = document.createElement('script');
-            se.type = 'text/javascript';
-            se.text = graphScript;
-            graphPanel.appendChild(se);
-            console.log('그래프 스크립트 실행됨'); // 디버깅용
-          } else {
-            console.error('그래프 패널을 찾을 수 없음!'); // 디버깅용
-          }
-        }, 100); // 100ms 지연
-      } else {
-        console.log('그래프 스크립트가 없음'); // 디버깅용
+        setTimeout(() => {
+          const gp = document.getElementById('graph-panel');
+          if (gp) { const se = document.createElement('script'); se.type='text/javascript'; se.text=graphScript; gp.appendChild(se); }
+        }, 60);
       }
-      
-    } catch (error) {
-      console.error('fetchWeatherData 에러:', error); // 디버깅용
-      contentEl.innerHTML = '<div style="padding: 20px; color: #ef4444; text-align: center;">에러: ' + error.message + '<br><br>디버그 정보:<br>도시: ' + city + ', 항구: ' + port + ', 날짜: ' + date + '</div>';
+    } catch (err) {
+      contentEl.innerHTML = '<div style="padding:20px;color:#ef4444;text-align:center;">에러: ' + err.message + '</div>';
     }
   }
 

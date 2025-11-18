@@ -193,38 +193,54 @@ document.addEventListener('DOMContentLoaded', () => {
     titleEl.textContent = `${portName} (${dateStr})`;
     subEl.textContent = dateStr || '요청 중...';
     tbody.innerHTML = '<tr class="loading-row"><td colspan="6">불러오는 중...</td></tr>';
+
+    let tideRows = [];
+    let tideError = null;
+    // 1) 표 데이터 시도
     try {
       const qs = new URLSearchParams({ port_id: String(portId), date: dateStr || '' });
       const resp = await fetch(`/api/tide?${qs.toString()}`);
-      if(!resp.ok) throw new Error('10일 이후 날씨는 조회되지 않습니다.');
-      const data = await resp.json();
-      if(data.error){
-        throw new Error(data.error);
-      }
-      // 부제목: 날짜 + tide 원본 링크
-      const tideUrl = `https://www.badatime.com/${portId}/tide/${dateStr}`;
-      subEl.innerHTML = `${dateStr} · <a href="${tideUrl}" target="_blank" rel="noopener">${tideUrl}</a>`;
-      // 우측 그래프: 파싱 API 호출로 필요한 부분만 로드
-      try {
-        const gresp = await fetch(`/api/tide_graph?port_id=${portId}&date=${encodeURIComponent(dateStr)}`);
-        if (!gresp.ok) throw new Error('그래프 정보를 불러올 수 없습니다.');
-        const gdata = await gresp.json();
-        if (!gdata.success) throw new Error(gdata.message || '그래프 파싱 실패');
-        graphPanel.innerHTML = (gdata.pc_html || '') + (gdata.chart_html || '');
-        if (gdata.script) {
-          const se = document.createElement('script');
-          se.type = 'text/javascript';
-          se.text = gdata.script;
-          graphPanel.appendChild(se);
+      if(!resp.ok) {
+        // 10일 이후 조회 제한 안내 문구로 통일
+        tideError = '10일 이후에 날씨 정보는 조회가 안됩니다.';
+      } else {
+        const data = await resp.json();
+        if(data.error) {
+          tideError = data.error;
+        } else {
+          tideRows = data.data || [];
         }
-      } catch (e) {
-        graphPanel.innerHTML = `<div style="padding:12px;color:#374151;background:#fff;">그래프 정보를 불러오지 못했습니다. 새 탭에서 확인하세요.</div>`;
       }
-      renderTideRows(data.data || []);
-    } catch(err){
-      console.error(err);
-      tbody.innerHTML = `<tr class='empty-row'><td colspan='6'>${err.message}</td></tr>`;
-      subEl.textContent = dateStr || '';
+    } catch(errTable) {
+      tideError = '표 요청 실패: ' + errTable.message;
+    }
+
+    // 2) 그래프 항상 시도
+    try {
+      const gresp = await fetch(`/api/tide_graph?port_id=${portId}&date=${encodeURIComponent(dateStr)}`);
+      if (!gresp.ok) throw new Error('그래프 정보를 불러올 수 없습니다.');
+      const gdata = await gresp.json();
+      if (!gdata.success) throw new Error(gdata.message || '그래프 파싱 실패');
+      graphPanel.innerHTML = (gdata.pc_html || '') + (gdata.chart_html || '');
+      if (gdata.script) {
+        const se = document.createElement('script');
+        se.type = 'text/javascript';
+        se.text = gdata.script;
+        graphPanel.appendChild(se);
+      }
+    } catch (eGraph) {
+      graphPanel.innerHTML = `<div style="padding:12px;color:#374151;background:#fff;">그래프 정보를 불러오지 못했습니다. 새 탭에서 확인하세요.</div>`;
+    }
+
+    // 3) 부제목 / 원본 링크
+    const tideUrl = `https://www.badatime.com/${portId}/tide/${dateStr}`;
+    subEl.innerHTML = `${dateStr} · <a href="${tideUrl}" target="_blank" rel="noopener">${tideUrl}</a>`;
+
+    // 4) 표 렌더링
+    if (tideError) {
+      tbody.innerHTML = `<tr class='empty-row'><td colspan='6'><span style='color:#dc2626'>${tideError}</span></td></tr>`;
+    } else {
+      renderTideRows(tideRows);
     }
   });
 

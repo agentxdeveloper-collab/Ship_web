@@ -47,3 +47,6 @@ Thumbs.db
 
 # Temporary files
 temp_views.txt
+
+# 엑셀 다운로드 파일 제외
+boat_list.xlsx

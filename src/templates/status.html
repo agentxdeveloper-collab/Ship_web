@@ -264,21 +264,23 @@
     position: fixed;
     top: 0;
     left: 0;
-    width: 100%;
-    height: 100%;
+    width: 100vw;
+    height: 100vh;
     background: rgba(0,0,0,0.5);
     z-index: 10000;
-    overflow-y: auto;
+    overflow: auto;
   }
 
   .popup-content {
     position: relative;
-    margin: 20px auto;
-    max-width: 95%;
-    width: 1400px;
+    margin: 32px auto;
+    max-width: 99vw;
+    width: 1200px;
     background: white;
     border-radius: 18px;
     box-shadow: 0 10px 40px rgba(0,0,0,0.2);
+    max-height: 99vh;
+    overflow: visible;
   }
 
   .popup-header {
@@ -313,9 +315,33 @@
 
   .popup-body {
     padding: 0;
-    max-height: calc(100vh - 120px);
-    overflow-y: auto;
+    max-height: none;
+    overflow: visible;
   }
+
+  /* weather.html과 동일한 팝업 내부 레이아웃 스타일 */
+  .result-split{display:flex;gap:16px;background:#fff;border-radius:0 0 18px 18px;box-shadow:0 4px 18px rgba(0,0,0,.08);overflow:hidden;width:1300px;margin:0 auto;min-height:800px}
+  .result-left{flex:1;min-width:0;border-right:1px solid #eef2f7;overflow:visible}
+  .result-right{flex:1;min-width:0;background:#fff;overflow:visible}
+  .graph-panel{padding:8px;background:#fff;height:800px;overflow:visible}
+  /* tide 테이블 전용 스타일 (범위 좁힘) */
+  #tide-table{width:100%;border-collapse:collapse}
+  #tide-table thead th{background:#f9fafb;padding:14px 10px;font-size:16px;font-weight:600;color:#374151;border-bottom:2px solid #e5e7eb;text-align:center;letter-spacing:.5px}
+  #tide-table tbody td{padding:14px 10px;border-bottom:1px solid #f3f4f6;font-size:15px;color:#4b5563;text-align:center}
+  #tide-table tbody tr:nth-child(even){background:#f9fafb}
+  #tide-table tbody tr:hover{background:#f3f4f6}
+  .time-cell{font-weight:600;color:#111827;font-size:15px}
+
+  /* 팝업 폭도 weather 레이아웃과 일치 */
+  .popup-content{width:1300px}
+
+  /* Flatpickr 날짜 입력 컴포넌트 스타일 (weather.html과 유사) */
+  .fp-wrap{position:relative;display:flex;align-items:center;gap:8px}
+  .calendar-btn{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
+  .calendar-btn svg{width:28px;height:28px;color:#374151}
+  .form-control{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:18px;box-sizing:border-box;outline:none}
+  .form-control:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 1px #0d9488}
+  .date-input{height:48px}
 </style>
 
 <!-- 통합 필터 카드 -->
@@ -352,29 +378,28 @@
       {% endfor %}
     </div>
 
-    <!-- 날짜 입력 -->
-    <div style="display:flex; gap:20px; flex-wrap:wrap; align-items: flex-end;">
-      <div style="flex:1; min-width:180px; max-width:250px;">
-        <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="year">연도</label>
-        <input id="year" name="year" type="number" class="date-input" min="2000" max="2100"
-               value="{{ year or '' }}" required>
+    <!-- 날짜 입력: Flatpickr 단일 컴포넌트로 교체 -->
+    <div style="display:flex; gap:16px; flex-wrap:wrap; align-items:center;">
+      <div style="flex:1; min-width:280px; max-width:360px;">
+        <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="date">날짜선택</label>
+        <div class="fp-wrap">
+          <input id="date" class="form-control date-input flatpickr-input" type="text" placeholder="YYYY-MM-DD" required>
+          <button type="button" id="open-cal" class="calendar-btn" aria-label="달력 열기">
+            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+              <path d="M16 2v4M8 2v4M3 10h18"></path>
+            </svg>
+          </button>
+        </div>
       </div>
-      <div style="flex:1; min-width:180px; max-width:250px;">
-        <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="month">월</label>
-        <input id="month" name="month" type="number" class="date-input" min="1" max="12"
-               value="{{ month or '' }}" required>
-      </div>
-      <div style="flex:1; min-width:180px; max-width:250px;">
-        <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="day">일</label>
-        <input id="day" name="day" type="number" class="date-input" min="1" max="31"
-               value="{{ day or '' }}" required>
-      </div>
-      <div style="flex:0 0 auto;">
-        <button id="searchBtn" type="submit" class="btn-search">
-          🔍 조회
-        </button>
+      <div style="flex:0 0 auto;align-self:flex-end;">
+        <button id="searchBtn" type="submit" class="btn-search">🔍 조회</button>
       </div>
     </div>
+    <!-- 서버 라우트 호환을 위한 hidden 필드 -->
+    <input type="hidden" id="year" name="year" value="{{ year or '' }}">
+    <input type="hidden" id="month" name="month" value="{{ month or '' }}">
+    <input type="hidden" id="day" name="day" value="{{ day or '' }}">
   </form>
 </div>
 
@@ -482,6 +507,29 @@
 
 <script>
   document.addEventListener('DOMContentLoaded', function(){
+    // Flatpickr 초기화: yyyy-mm-dd, 한국어, 기본 날짜는 템플릿 year/month/day 또는 오늘
+    const dateInput = document.getElementById('date');
+    const openBtn = document.getElementById('open-cal');
+    let defaultDate = null;
+    try {
+      const yInit = "{{ year or '' }}";
+      const mInit = "{{ month or '' }}";
+      const dInit = "{{ day or '' }}";
+      if (yInit && mInit && dInit) {
+        defaultDate = `${String(yInit).padStart(4,'0')}-${String(mInit).padStart(2,'0')}-${String(dInit).padStart(2,'0')}`;
+      }
+    } catch (e) {}
+
+    if (typeof flatpickr !== 'undefined' && dateInput) {
+      const fp = flatpickr(dateInput, {
+        dateFormat: 'Y-m-d',
+        defaultDate: defaultDate || new Date(),
+        locale: (window.flatpickr && window.flatpickr.l10ns && window.flatpickr.l10ns.ko) ? window.flatpickr.l10ns.ko : undefined,
+        allowInput: true,
+        disableMobile: true
+      });
+      if (openBtn) openBtn.addEventListener('click', () => fp.open());
+    }
     // '전체' 선택 시 다른 지역 해제, 개별 지역 선택 시 '전체' 해제
     const allBox = document.querySelector('input[name="regions"][value="전체"]');
     const regionBoxes = Array.from(document.querySelectorAll('input[name="regions"]')).filter(cb => cb.value !== '전체');
@@ -502,6 +550,18 @@
     const overlay = document.getElementById('loading-overlay');
     if(form && overlay){
       form.addEventListener('submit', function(e){
+        // 선택된 날짜를 year/month/day hidden 필드로 분해
+        const di = document.getElementById('date');
+        const val = di && di.value ? di.value : '';
+        if (val) {
+          const [yy, mm, dd] = val.split('-');
+          const yEl = document.getElementById('year');
+          const mEl = document.getElementById('month');
+          const dEl = document.getElementById('day');
+          if (yEl) yEl.value = yy;
+          if (mEl) mEl.value = mm;
+          if (dEl) dEl.value = dd;
+        }
         overlay.style.display = 'flex';
         const btn = form.querySelector('button[type="submit"], #searchBtn');
         if(btn){ btn.disabled = true; }
@@ -698,12 +758,9 @@
         popupBtn.setAttribute('data-city', r.city || '');
         popupBtn.setAttribute('data-port', r.port || '');
         
-        // 현재 날짜 가져오기 (검색된 날짜 사용)
-        const searchForm = document.getElementById('status-form');
-        const year = searchForm ? searchForm.querySelector('input[name="year"]')?.value : new Date().getFullYear();
-        const month = searchForm ? searchForm.querySelector('input[name="month"]')?.value : (new Date().getMonth() + 1);
-        const day = searchForm ? searchForm.querySelector('input[name="day"]')?.value : new Date().getDate();
-        const formattedDate = `${year}-${String(month).padStart(2, '0')}-${String(day).padStart(2, '0')}`;
+        // 현재 선택된 날짜 (flatpickr 입력 값)
+        const di2 = document.getElementById('date');
+        const formattedDate = (di2 && di2.value) ? di2.value : getCurrentDate();
         
         popupBtn.setAttribute('data-date', formattedDate);
         console.log('팝업 버튼 생성:', { city: r.city, port: r.port, date: formattedDate }); // 디버깅용
@@ -871,81 +928,52 @@
       }
       
       // weather.html과 동일한 tide-result 테이블 형태로 생성 (헤더는 생략하여 중복 제거)
+
       const tideUrl = 'https://www.badatime.com/' + portId + '/tide/' + date;
 
-      let resultHtml = '<div style="position: relative; width: 100%; max-width: 1200px; margin: 0 auto;">';
-
-      // 2열 레이아웃 시작 (weather.html의 result-split과 동일) — 헤더를 빼므로 둥근 모서리를 전체에 적용
-      resultHtml += '<div style="display: flex; gap: 16px; background: #fff; border-radius: 18px; box-shadow: 0 4px 18px rgba(0,0,0,.08); overflow: hidden; min-height: 600px;">';
-      
-      // 좌측 테이블 영역 (weather.html의 result-left와 동일)
-      resultHtml += '<div style="flex: 1; min-width: 0; border-right: 1px solid #eef2f7; overflow: visible;">';
-      resultHtml += '<table style="width: 100%; border-collapse: collapse;">';
-      
-      // 테이블 헤더 (weather.html의 thead 스타일과 동일)
-      resultHtml += '<thead>';
-      resultHtml += '<tr>';
-      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">시간</th>';
-      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">풍향</th>';
-      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">풍속</th>';
-      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">날씨</th>';
-      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">기온</th>';
-      resultHtml += '<th style="background: #f9fafb; padding: 14px 10px; font-size: 16px; font-weight: 600; color: #374151; border-bottom: 2px solid #e5e7eb; text-align: center; letter-spacing: 0.5px;">파고/주기</th>';
-      resultHtml += '</tr>';
-      resultHtml += '</thead>';
-      
-      // 테이블 본문
-      resultHtml += '<tbody>';
-      
+      // weather.html과 완전히 동일한 구조/클래스명으로 팝업 생성
+      let resultHtml = '';
+      resultHtml += '<div class="result-split">';
+      resultHtml += '  <div class="result-left">';
+      resultHtml += '    <table id="tide-table">';
+      resultHtml += '      <thead><tr>';
+      resultHtml += '        <th>시간</th><th>풍향</th><th>풍속</th><th>날씨</th><th>기온</th><th>파고/주기</th>';
+      resultHtml += '      </tr></thead>';
+      resultHtml += '      <tbody id="tide-tbody">';
       if (data.data && data.data.length > 0) {
         data.data.forEach((r, index) => {
-          // weather.html의 renderTideRows와 동일한 로직
-          const weatherDisplay = r.weather_icon_url ? 
-            '<img src="' + r.weather_icon_url + '" alt="" width="28" style="vertical-align:middle;margin-right:4px;">' + (r.weather_text||'') : 
+          const weatherDisplay = r.weather_icon_url ?
+            '<img src="' + r.weather_icon_url + '" alt="" width="28" style="vertical-align:middle;margin-right:4px;">' + (r.weather_text||'') :
             (r.weather_text||'');
-          const windDirDisplay = r.wind_dir_icon_url ? 
-            '<img src="' + r.wind_dir_icon_url + '" alt="" width="16" style="vertical-align:middle;margin-right:4px;">' + (r.wind_dir||'') : 
+          const windDirDisplay = r.wind_dir_icon_url ?
+            '<img src="' + r.wind_dir_icon_url + '" alt="" width="16" style="vertical-align:middle;margin-right:4px;">' + (r.wind_dir||'') :
             (r.wind_dir||'');
-          
-          // weather.html과 동일한 풍속 색상 처리
-          let windSpeedColor = '#4b5563'; // 기본 색상
+          let windSpeedColor = '#4b5563';
           const windSpeed = parseFloat(r.wind_speed || '0');
-          if (windSpeed >= 5.0 && windSpeed <= 7.9) {
-            windSpeedColor = '#f1c40f'; // 노란색
-          } else if (windSpeed >= 8.0 && windSpeed <= 15.0) {
-            windSpeedColor = '#c0392b'; // 빨간색
-          }
-          
-          // weather.html의 tbody 스타일과 동일 (홀짝 배경, 호버 등)
+          if (windSpeed >= 5.0 && windSpeed <= 7.9) windSpeedColor = '#f1c40f';
+          else if (windSpeed >= 8.0 && windSpeed <= 15.0) windSpeedColor = '#c0392b';
           const bgColor = (index % 2 === 0) ? '#fff' : '#f9fafb';
-          
-          resultHtml += '<tr style="background: ' + bgColor + ';" onmouseover="this.style.background=\'#f3f4f6\'" onmouseout="this.style.background=\'' + bgColor + '\'">';
-          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #111827; text-align: center; font-weight: 600;">' + (r.time || '') + '</td>'; // time-cell 클래스 스타일
-          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #4b5563; text-align: center;">' + windDirDisplay + '</td>';
-          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; text-align: center; color: ' + windSpeedColor + ';">' + (r.wind_speed || '') + '</td>';
-          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #4b5563; text-align: center;">' + weatherDisplay + '</td>';
-          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #4b5563; text-align: center;">' + (r.temperature || '') + '</td>';
-          resultHtml += '<td style="padding: 14px 10px; border-bottom: 1px solid #f3f4f6; font-size: 15px; color: #4b5563; text-align: center;">' + (r.wave_height || '') + '</td>';
+          resultHtml += `<tr style="background: ${bgColor};" onmouseover="this.style.background='#f3f4f6'" onmouseout="this.style.background='${bgColor}'">`;
+          resultHtml += `<td class="time-cell">${r.time || ''}</td>`;
+          resultHtml += `<td>${windDirDisplay}</td>`;
+          resultHtml += `<td style="color:${windSpeedColor}">${r.wind_speed || ''}</td>`;
+          resultHtml += `<td>${weatherDisplay}</td>`;
+          resultHtml += `<td>${r.temperature || ''}</td>`;
+          resultHtml += `<td>${r.wave_height || ''}</td>`;
           resultHtml += '</tr>';
         });
       } else {
-        resultHtml += '<tr class="empty-row"><td colspan="6" style="padding: 42px; font-size: 14px; color: #9ca3af; text-align: center;">데이터가 없습니다.</td></tr>';
+        resultHtml += '<tr><td colspan="6">데이터가 없습니다.</td></tr>';
       }
-      
-      resultHtml += '</tbody>';
-      resultHtml += '</table>';
-      resultHtml += '</div>';
-      
-      // 우측 그래프 영역 (weather.html의 result-right와 동일)
-      resultHtml += '<div style="flex: 1; min-width: 0; background: #fff; overflow: visible;">';
-      resultHtml += '<div id="popup-graph-panel" style="padding: 8px; background: #fff; height: 600px; overflow: visible;">';
+      resultHtml += '      </tbody>';
+      resultHtml += '    </table>';
+      resultHtml += '  </div>';
+      resultHtml += '  <div class="result-right">';
+      resultHtml += '    <div id="graph-panel" class="graph-panel">';
       resultHtml += graphHtml || '<div style="padding: 20px; color: #6b7280; text-align: center;">그래프 정보를 불러올 수 없습니다.</div>';
+      resultHtml += '    </div>';
+      resultHtml += '  </div>';
       resultHtml += '</div>';
-      resultHtml += '</div>';
-      
-      resultHtml += '</div>'; // result-split 종료
-      resultHtml += '</div>'; // 전체 컨테이너 종료
-      
       contentEl.innerHTML = resultHtml;
       
       // weather.html과 동일하게 스크립트 실행 (그래프 렌더링)
@@ -953,7 +981,7 @@
       if (graphScript) {
         console.log('그래프 스크립트 준비됨, 길이:', graphScript.length); // 디버깅용
         setTimeout(function() {
-          const graphPanel = document.getElementById('popup-graph-panel');
+          const graphPanel = document.getElementById('graph-panel');
           if (graphPanel) {
             console.log('그래프 패널 찾음:', graphPanel); // 디버깅용
             const se = document.createElement('script');
@@ -1023,6 +1051,12 @@
 </div>
 
 <!-- amCharts v4 스크립트 추가 (그래프 렌더링용) -->
+<!-- Flatpickr CDN (날짜 선택용) -->
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.css">
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/flatpickr.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/flatpickr@4.6.13/dist/l10n/ko.js"></script>
+
+<!-- 그래프 렌더링 -->
 <script src="https://cdn.amcharts.com/lib/4/core.js"></script>
 <script src="https://cdn.amcharts.com/lib/4/charts.js"></script>
 <script src="https://cdn.amcharts.com/lib/4/themes/animated.js"></script>

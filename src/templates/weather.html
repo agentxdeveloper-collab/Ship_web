@@ -202,7 +202,7 @@ document.addEventListener('DOMContentLoaded', () => {
       const resp = await fetch(`/api/tide?${qs.toString()}`);
       if(!resp.ok) {
         // 10일 이후 조회 제한 안내 문구로 통일
-        tideError = '10일 이후에 날씨 정보는 조회가 안됩니다.';
+        tideError = '10일 이후 날씨 정보는 조회가 안됩니다.';
       } else {
         const data = await resp.json();
         if(data.error) {

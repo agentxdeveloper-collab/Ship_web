@@ -13,15 +13,32 @@
       color: #fff;
       box-shadow: 0 4px 12px rgba(0,102,204,0.3);
     }
+    /* Header inner: fix horizontal margins to 330px as requested */
     .site-top .inner {
-      max-width: 1200px;
-      margin: 0 auto;
-      padding: 0 20px;
+      margin-left:330px;
+      margin-right:330px;
+      padding:0 20px;
       display:flex;
       flex-direction:row;
       align-items:center;
       justify-content:space-between;
       gap:20px;
+      width:auto; /* allow natural width between fixed margins */
+      max-width:none; /* remove previous cap so margin governs width */
+      box-sizing:border-box;
+    }
+    /* Responsive fallback: on narrow screens reduce margins */
+    @media (max-width:1600px){
+      .site-top .inner { margin-left:200px; margin-right:200px; }
+    }
+    @media (max-width:1400px){
+      .site-top .inner { margin-left:120px; margin-right:120px; }
+    }
+    @media (max-width:1100px){
+      .site-top .inner { margin-left:60px; margin-right:60px; }
+    }
+    @media (max-width:920px){
+      .site-top .inner { margin-left:16px; margin-right:16px; padding:0 16px; flex-direction:column; align-items:flex-start; }
     }
     .site-top .title {
       display:flex;
@@ -45,6 +62,8 @@
       font-size:36px;
       line-height:1;
     }
+    /* Protective rule: ensure header keeps white text even if a page defines .title */
+    .site-top .title, .site-top .title .text, .site-top .subtitle { color:#fff !important; }
     .site-top .subtitle {
       font-size:13px;
       opacity:0.95;
@@ -169,6 +188,13 @@
             <path d="M14.5 2a6.5 6.5 0 0 0-5.833 9.5H2.5l7 7 7-7h-6a5.5 5.5 0 1 1 4.002 9.506v2.014a7.5 7.5 0 1 0 0-15.02z"></path>
           </svg>
           날씨 정보
+        </a>
+        <a href="{{ url_for('views.sea_temp_test') }}" class="qa-btn qa-map" title="바다 수온 지도">
+          <svg xmlns="http://www.w3.org/2000/svg" width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">
+            <path d="M2 16s2-2 5-2 5 2 8 2 5-2 7-2"/>
+            <path d="M2 20s2-2 5-2 5 2 8 2 5-2 7-2"/>
+          </svg>
+          바다온도
         </a>
       </div>
     </div>

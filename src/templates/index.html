@@ -89,6 +89,13 @@
 
         <!-- 액션 버튼들 (오른쪽) -->
         <div class="action-right">
+          <a href="{{ url_for('views.sea_temp_test') }}" class="btn-action green" title="바다 수온 지도">
+            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
+              <path d="M2 16s2-2 5-2 5 2 8 2 5-2 7-2"/>
+              <path d="M2 20s2-2 5-2 5 2 8 2 5-2 7-2"/>
+            </svg>
+            바다온도
+          </a>
           <a href="{{ url_for('views.register') }}" class="btn-action success open-register-modal">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="12" y1="5" x2="12" y2="19"/>

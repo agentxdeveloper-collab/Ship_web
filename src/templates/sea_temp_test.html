@@ -1,0 +1,75 @@
+{% extends "base.html" %}
+{% block content %}
+<style>
+  .wrap {max-width: 1100px; margin: 24px auto; padding: 0 12px}
+  .card {background:#fff;border-radius:12px;box-shadow:0 4px 14px rgba(0,0,0,.08);padding:20px;margin-bottom:18px}
+  /* Renamed from .title to .page-title to avoid clashing with GNB header */
+  .page-title {font-size:20px;font-weight:700;margin:0 0 12px;color:#1f2937}
+  .row {display:flex;gap:12px;flex-wrap:wrap;align-items:flex-end}
+  .row .col {flex:1;min-width:220px}
+  .form-control {width:100%;padding:10px 12px;border:1px solid #d1d5db;border-radius:8px;font-size:16px;box-sizing:border-box}
+  .btn {padding:10px 18px;background:#0d9488;color:#fff;border:none;border-radius:8px;font-weight:700;cursor:pointer}
+  .btn:hover {background:#0f766e}
+  .hint {font-size:12px;color:#64748b;margin-top:8px}
+  
+  /* 바다타임 컨텐츠 영역 스타일 */
+  #sea-temp-content {
+    width: 100%;
+    min-height: 720px;
+    background: #f8fafc;
+  }
+  
+  /* 바다타임 스크립트에서 생성되는 지도 컨테이너 스타일 */
+  #sea-temp-content .content {
+    width: 100%;
+    height: auto;
+  }
+</style>
+
+<div class="wrap">
+  <div class="card">
+    <h2 class="page-title">🌡️ 바다타임 Sea-Temp 임베드 테스트</h2>
+    <div class="row">
+      <div class="col" style="max-width:540px;">
+        <label for="port-select">항구 선택 (바다타임 ID 매핑)</label>
+        <select id="port-select" class="form-control">
+          <option value="">항구를 선택하세요</option>
+          {% for port_name, pid in bada_port_ids.items() %}
+            <option value="{{ pid }}" {% if pid == current_port_id %}selected{% endif %}>{{ port_name }} ({{ pid }})</option>
+          {% endfor %}
+        </select>
+        <div class="hint">목록에서 항구를 선택하면 아래 임베드가 갱신됩니다.</div>
+      </div>
+    </div>
+  </div>
+
+  <div class="card">
+    <h3 style="margin-bottom:12px; color:#1f2937;">🌡️ 바다 수온 정보</h3>
+    <div style="padding:12px; background:#fff3cd; border:1px solid #ffc107; border-radius:8px; margin-bottom:12px; font-size:14px;">
+      ℹ️ <strong>안내:</strong> Kakao Maps API 키 인증 문제로 iframe 방식으로 표시됩니다.
+    </div>
+    <div id="sea-temp-content" style="margin-top:10px; min-height:720px;">
+      <iframe 
+        id="sea-temp-iframe" 
+        style="width:100%; height:720px; border:1px solid #e5e7eb; border-radius:8px; display:block;"
+        src="https://www.badatime.com/{{ current_port_id }}/sea-temp"
+      ></iframe>
+    </div>
+  </div>
+</div>
+
+<script>
+(function(){
+  const sel = document.getElementById('port-select');
+  const iframe = document.getElementById('sea-temp-iframe');
+  
+  function updateIframe(pid){
+    if(!pid) return;
+    iframe.src = `https://www.badatime.com/${pid}/sea-temp`;
+  }
+  
+  // 항구 선택 시 iframe src 업데이트
+  sel.addEventListener('change', ()=> updateIframe(sel.value));
+})();
+</script>
+{% endblock %}

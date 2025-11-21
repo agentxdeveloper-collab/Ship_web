@@ -1085,3 +1085,138 @@ def api_add_ship():
         current_app.logger.error(f"API add ship error: {e}")
         return jsonify({'error': '선박 등록 중 오류가 발생했습니다.'}), 500
 
+@views.route('/sea-temp-test')
+@views.route('/sea-temp-test/<int:port_id>')
+def sea_temp_test(port_id=None):
+    """Badatime 바다 수온 지도 임베드 테스트 페이지
+    - 경로: /sea-temp-test 또는 /sea-temp-test/<port_id>
+    - 쿼리스트링으로도 지정 가능: /sea-temp-test?port_id=118
+    """
+    # 우선순위: path param > query param
+    q_port_id = request.args.get('port_id', type=int)
+    pid = port_id or q_port_id or 118
+    # 항구명-포트ID 매핑 전달하여 선택 편의 제공
+    return render_template(
+        'sea_temp_test.html',
+        current_port_id=pid,
+        bada_port_ids=get_bada_port_ids(),
+    )
+
+@views.route('/api/sea_temp')
+def api_sea_temp():
+    """바다타임에서 수온 정보를 가져와서 자체 Kakao Maps API로 재구성"""
+    import requests
+    from bs4 import BeautifulSoup
+    import re
+    import json
+    
+    port_id = request.args.get('port_id', type=int, default=443)
+    url = f"https://www.badatime.com/{port_id}/sea-temp"
+    
+    headers = {
+        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36'
+    }
+    
+    try:
+        response = requests.get(url, headers=headers, timeout=10)
+        response.raise_for_status()
+        
+        soup = BeautifulSoup(response.content, 'html.parser')
+        
+        # main.content 영역 찾기
+        content = soup.select_one('main.content')
+        
+        if not content:
+            return jsonify({'error': 'main.content 영역을 찾을 수 없습니다.'}), 404
+        
+        # 지도 스크립트에서 마커 데이터 추출
+        map_markers = []
+        center_coords = {'lat': 34.5049, 'lng': 127.1228}  # 기본값
+        
+        for script in soup.find_all('script'):
+            if script.string and 'mapOption' in script.string:
+                script_text = script.string
+                
+                # 중심 좌표 추출
+                center_match = re.search(r'center:\s*new\s+daum\.maps\.LatLng\(([^,]+),\s*([^)]+)\)', script_text)
+                if center_match:
+                    center_coords = {
+                        'lat': float(center_match.group(1)),
+                        'lng': float(center_match.group(2))
+                    }
+                
+                # 마커 데이터 추출 (위도, 경도, 라벨, 온도)
+                # customOverlay content 추출
+                overlay_pattern = r"var content = '(.+?)';\s*var position = new daum\.maps\.LatLng\(([^,]+),\s*([^)]+)\);"
+                for match in re.finditer(overlay_pattern, script_text, re.DOTALL):
+                    content_html = match.group(1)
+                    lat = float(match.group(2))
+                    lng = float(match.group(3))
+                    
+                    # HTML에서 지역명과 온도 추출
+                    name_match = re.search(r'font-weight:600[^>]*>([^<]+?)\s*<span', content_html)
+                    temp_match = re.search(r'font-size:15px[^>]*>([^<]+)</span>', content_html)
+                    time_match = re.search(r'font-size:12px[^>]*>([^<]+)</div>', content_html)
+                    
+                    if name_match and temp_match:
+                        map_markers.append({
+                            'name': name_match.group(1).strip(),
+                            'temp': temp_match.group(1).strip(),
+                            'time': time_match.group(1).strip() if time_match else '',
+                            'lat': lat,
+                            'lng': lng
+                        })
+        
+        # 이미지 경로를 절대 경로로 변환
+        for img in content.find_all('img'):
+            src = img.get('src', '')
+            if src.startswith('//'):
+                img['src'] = 'https:' + src
+            elif src.startswith('/'):
+                img['src'] = 'https://www.badatime.com' + src
+        
+        # 링크 경로를 절대 경로로 변환
+        for link in content.find_all('a'):
+            href = link.get('href', '')
+            if href.startswith('/') and not href.startswith('//'):
+                link['href'] = 'https://www.badatime.com' + href
+                link['target'] = '_blank'
+        
+        # 지도 관련 스크립트 제거 (우리가 직접 구현)
+        for script in content.find_all('script'):
+            if 'kakao' in str(script) or 'daum.maps' in str(script) or 'mapContainer' in str(script):
+                script.decompose()
+        
+        # 지도 div는 유지하되 내용 비우기
+        map_div = content.find('div', id='map')
+        if map_div:
+            map_div.clear()
+            map_div['style'] = 'width:100%; height:500px;'
+        
+        # Highcharts 스크립트 추출 (그래프용)
+        highcharts_scripts = []
+        for script in content.find_all('script'):
+            if script.string and 'Highcharts.chart' in script.string:
+                highcharts_scripts.append(script.string)
+                script.decompose()  # 원본 제거
+        
+        # content HTML 추출
+        content_html = str(content)
+        
+        return jsonify({
+            'success': True,
+            'html': content_html,
+            'map_data': {
+                'center': center_coords,
+                'markers': map_markers,
+                'zoom': 8
+            },
+            'highcharts_scripts': highcharts_scripts,
+            'source_url': url
+        })
+        
+    except requests.RequestException as e:
+        return jsonify({'error': f'요청 중 오류 발생: {str(e)}'}), 500
+    except Exception as e:
+        return jsonify({'error': f'파싱 중 오류 발생: {str(e)}'}), 500
+

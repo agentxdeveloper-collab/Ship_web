@@ -89,13 +89,6 @@
 
         <!-- 액션 버튼들 (오른쪽) -->
         <div class="action-right">
-          <a href="{{ url_for('views.sea_temp_test') }}" class="btn-action green" title="바다 수온 지도">
-            <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-              <path d="M2 16s2-2 5-2 5 2 8 2 5-2 7-2"/>
-              <path d="M2 20s2-2 5-2 5 2 8 2 5-2 7-2"/>
-            </svg>
-            바다온도
-          </a>
           <a href="{{ url_for('views.register') }}" class="btn-action success open-register-modal">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="12" y1="5" x2="12" y2="19"/>
@@ -140,20 +133,20 @@
           <tbody id="shipTableBody">
             {% for b in boats %}
             <tr class="ship-row" data-region="{{ b.city }}" data-port="{{ b.port }}" data-name="{{ b.name }}" data-url="{{ b.url }}" data-note="{{ b.note if b.note else '' }}">
-              <td class="checkbox-col">
+              <td class="checkbox-col" data-label="선택">
                 <input type="checkbox" name="delete_ids" value="{{ b.id }}" class="table-checkbox row-check">
               </td>
-              <td class="number-col">{{ loop.index }}</td>
-              <td class="region-col">
+              <td class="number-col" data-label="No">{{ loop.index }}</td>
+              <td class="region-col" data-label="지역">
                 <span class="region-badge">{{ b.city }}</span>
               </td>
-              <td class="port-col">{{ b.port }}</td>
-              <td class="ship-col">
+              <td class="port-col" data-label="항구">{{ b.port }}</td>
+              <td class="ship-col" data-label="등록된 배">
                 <div class="ship-info">
                   <span class="ship-name">{{ b.name }}</span>
                 </div>
               </td>
-              <td class="url-col">
+              <td class="url-col" data-label="URL">
                 <a href="{{ b.url }}" target="_blank" class="detail-link">
                   URL 링크
                   <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -161,7 +154,7 @@
                   </svg>
                 </a>
               </td>
-              <td class="note-col">{{ b.note if b.note is defined else '' }}</td>
+              <td class="note-col" data-label="비고">{{ b.note if b.note is defined else '' }}</td>
             </tr>
             {% else %}
             <tr class="empty-row">
@@ -864,72 +857,83 @@
 /* 반응형 디자인 */
 @media (max-width: 768px) {
   .main-container {
-    padding: 0 16px;
+    padding: 0 12px;
   }
   
   .page-header {
-    flex-direction: column;
-    align-items: flex-start;
-    gap: 16px;
+    flex-direction: row;
+    align-items: center;
+    justify-content: space-between;
+    gap: 8px;
   }
   
   .header-right {
-    width: 100%;
-    justify-content: flex-start;
+    display: flex !important;
+    width: auto;
+    justify-content: flex-end;
+    flex-wrap: nowrap;
+    gap: 6px;
   }
+  .btn-header{font-size:13px;padding:0px 8px;min-width:auto}
   
   .filters-section {
     flex-direction: column;
     align-items: stretch;
-    gap: 12px;
+    gap: 10px;
+    padding:10px;
   }
   
   .search-box {
     min-width: auto;
     max-width: none;
+    padding:4px 8px;
   }
   
   .filter-group {
     flex-direction: row;
-    gap: 8px;
+    gap: 6px;
+    padding:4px 8px;
   }
   
   .filter-select {
     flex: 1;
-    min-width: 80px;
+    min-width: 70px;
+    font-size:13px;
+    padding:10px 28px 10px 10px;
   }
+  .btn-reset{font-size:13px;padding:10px 12px}
   
   .actions-section {
     flex-direction: column;
-    gap: 12px;
+    gap: 10px;
   }
   
   .action-left, .action-right {
     width: 100%;
     justify-content: center;
+    flex-wrap:wrap;
   }
   
-  .modern-table {
-    font-size: 14px;
-  }
+  .btn-action{font-size:13px;padding:0px 8px}
+  .action-right .qa-map{display:none}
   
-  .modern-table th,
-  .modern-table td {
-    padding: 12px 8px;
-  }
+  .tab-actions-container{flex-direction:column;align-items:stretch;gap:10px}
+  .tab-menu{width:100%;justify-content:space-between}
+  .tab-btn{font-size:13px;padding:8px 12px;flex:1}
+  .ship-count-inline{margin-left:auto;font-size:13px}
   
-  .tab-btn {
-    font-size: 14px;
-    padding: 10px 16px;
-  }
+  .table-container{border-radius:8px}
+  .modern-table thead{display:none}
+  .modern-table,.modern-table tbody,.modern-table tr,.modern-table td{display:block;width:100%}
+  .modern-table tr{margin-bottom:12px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;background:#fff}
+  .modern-table td{border:0!important;padding:8px 0;text-align:left!important;position:relative;padding-left:100px;min-height:24px}
+  .modern-table td:before{content:attr(data-label);position:absolute;left:0;width:90px;font-weight:600;color:#374151;font-size:12px;line-height:1.5}
+  .modern-table tr:hover{background:#f9fafb!important}
+  .modern-table .checkbox-col{display:none!important}
   
-  .tab-menu {
-    width: 100%;
-  }
-  
-  .tab-btn {
-    flex: 1;
-  }
+  /* 모달 */
+  .modal-panel{width:95%;max-width:95vw}
+  .form-grid{grid-template-columns:1fr}
 }
 
 /* 기존 스타일 유지 (호환성을 위해) */
@@ -1059,20 +1063,20 @@ function renderShips(ships) {
     } else {
         tbody.innerHTML = ships.map((ship, index) => `
             <tr class="ship-row" data-region="${ship.region}" data-port="${ship.port}" data-name="${ship.name}" data-url="${ship.url}" data-note="${ship.note || ''}">
-                <td class="checkbox-col">
+                <td class="checkbox-col" data-label="선택">
                     <input type="checkbox" name="delete_ids" value="${ship.id}" class="table-checkbox row-check">
                 </td>
-                <td class="number-col">${index + 1}</td>
-                <td class="region-col">
+                <td class="number-col" data-label="No">${index + 1}</td>
+                <td class="region-col" data-label="지역">
                     <span class="region-badge">${ship.region}</span>
                 </td>
-                <td class="port-col">${ship.port}</td>
-                <td class="ship-col">
+                <td class="port-col" data-label="항구">${ship.port}</td>
+                <td class="ship-col" data-label="등록된 배">
                     <div class="ship-info">
                         <span class="ship-name">${ship.name}</span>
                     </div>
                 </td>
-                <td class="url-col">
+                <td class="url-col" data-label="URL">
                     <a href="${ship.url}" target="_blank" class="detail-link">
                         URL 링크
                         <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
@@ -1080,7 +1084,7 @@ function renderShips(ships) {
                         </svg>
                     </a>
                 </td>
-                <td class="note-col">${ship.note || ''}</td>
+                <td class="note-col" data-label="비고">${ship.note || ''}</td>
             </tr>
         `).join('');
     }

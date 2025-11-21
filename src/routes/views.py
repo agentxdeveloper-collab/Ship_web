@@ -1,6 +1,7 @@
 import io
 import openpyxl
 from flask import Blueprint, render_template, redirect, url_for, flash, request, jsonify, current_app, Response
+from flask import send_from_directory
 from forms import BoatRegistrationForm, StatusCheckForm, BoatEditForm
 from db import add_boat_instance, get_all_boats, delete_boat, get_boat_by_id, update_boat
 from services.reservation_checker import check_single_boat
@@ -1219,4 +1220,19 @@ def api_sea_temp():
         return jsonify({'error': f'요청 중 오류 발생: {str(e)}'}), 500
     except Exception as e:
         return jsonify({'error': f'파싱 중 오류 발생: {str(e)}'}), 500
+
+@views.route('/manifest.json')
+def pwa_manifest():
+    """Serve the PWA manifest (root scope)."""
+    return send_from_directory(current_app.root_path, 'manifest.json', mimetype='application/manifest+json')
+
+@views.route('/service-worker.js')
+def pwa_service_worker():
+    """Serve the service worker at root for widest scope."""
+    return send_from_directory(current_app.root_path, 'service-worker.js', mimetype='application/javascript')
+
+@views.route('/offline')
+def offline_page():
+    """Offline fallback page served when navigation fails in PWA."""
+    return render_template('offline.html')
 

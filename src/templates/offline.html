@@ -1,0 +1,11 @@
+{% extends 'base.html' %}
+{% block content %}
+<div style="padding:40px 0; text-align:center;">
+  <h1 style="font-size:32px; margin-bottom:16px;">오프라인 상태입니다</h1>
+  <p style="font-size:18px; line-height:1.6; max-width:520px; margin:0 auto 24px;">
+    네트워크 연결을 사용할 수 없어 최신 데이터를 가져오지 못했습니다.<br>
+    연결이 복구되면 자동으로 다시 시도하거나 페이지를 새로고침 해주세요.
+  </p>
+  <button onclick="location.href='/'" style="background:#0066cc; color:#fff; border:0; padding:12px 24px; font-size:18px; border-radius:8px; cursor:pointer;">홈으로 이동</button>
+</div>
+{% endblock %}

@@ -2,6 +2,13 @@
 <html>
 <head>
   <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover">
+  <meta name="theme-color" content="#0066cc">
+  <link rel="manifest" href="/manifest.json">
+  <!-- iOS support -->
+  <meta name="apple-mobile-web-app-capable" content="yes">
+  <meta name="apple-mobile-web-app-status-bar-style" content="default">
+  <link rel="apple-touch-icon" href="/img/icons/icon-192.png">
   <title>Boat Reservations</title>
   <style>
     body { font-family: Arial, Helvetica, sans-serif; margin:0; padding:0; background: linear-gradient(#f7fbff, #eef7ff); }
@@ -38,7 +45,10 @@
       .site-top .inner { margin-left:60px; margin-right:60px; }
     }
     @media (max-width:920px){
-      .site-top .inner { margin-left:16px; margin-right:16px; padding:0 16px; flex-direction:column; align-items:flex-start; }
+      .site-top .inner { margin-left:16px; margin-right:16px; padding:0 12px; flex-direction:column; align-items:flex-start; gap:12px; }
+    }
+    @media (max-width:640px){
+      .site-top .inner { padding:0 8px; }
     }
     .site-top .title {
       display:flex;
@@ -59,7 +69,7 @@
     }
     .site-top .title .text {
       font-weight:800;
-      font-size:36px;
+      font-size:30px;
       line-height:1;
     }
     /* Protective rule: ensure header keeps white text even if a page defines .title */
@@ -134,7 +144,7 @@
       nav.main-nav a { font-size:24px; } /* responsive */
       .site-top { padding:16px 0; }
       .site-top .inner { 
-        padding: 0 16px; 
+        padding: 0 12px; 
         flex-direction: column;
         align-items: flex-start;
       }
@@ -143,8 +153,61 @@
         width: 100%;
         justify-content: flex-start;
         flex-wrap: wrap;
+        gap: 8px;
       }
-      .site-top .actions .qa-btn { font-size:14px; padding:10px 20px; }
+      .site-top .actions .qa-btn { font-size:13px; padding:0px 8px; }
+    }
+    
+    /* Global mobile optimizations */
+    @media (max-width:768px){
+      body { font-size:14px; }
+      .content-wrapper { padding:0 12px; }
+      
+      /* Table responsive: hide on mobile, show cards */
+      table.mobile-cards thead { display:none; }
+      table.mobile-cards,
+      table.mobile-cards tbody,
+      table.mobile-cards tr,
+      table.mobile-cards td {
+        display:block;
+        width:100%;
+      }
+      table.mobile-cards tr {
+        margin-bottom:16px;
+        border:1px solid #e5e7eb;
+        border-radius:12px;
+        padding:12px;
+        background:#fff;
+        box-shadow:0 2px 8px rgba(0,0,0,0.06);
+      }
+      table.mobile-cards td {
+        border:0 !important;
+        padding:8px 0;
+        text-align:left !important;
+        position:relative;
+        padding-left:140px;
+      }
+      table.mobile-cards td:before {
+        content:attr(data-label);
+        position:absolute;
+        left:0;
+        width:130px;
+        font-weight:600;
+        color:#374151;
+        white-space:nowrap;
+      }
+      
+      /* Buttons touch-friendly */
+      button, .btn, .btn-action, .qa-btn {
+        min-height:44px;
+        min-width:44px;
+      }
+    }
+    
+    @media (max-width:640px){
+      .site-top .logo { width:48px; height:48px; }
+      .site-top .text { font-size:20px; }
+      .site-top .subtitle { font-size:12px; }
     }
   </style>
 </head>
@@ -213,4 +276,20 @@
     {% block content %}{% endblock %}
   </div>
 </body>
+<script>
+// Service Worker registration
+if ('serviceWorker' in navigator) {
+  window.addEventListener('load', () => {
+    navigator.serviceWorker.register('/service-worker.js')
+      .catch(err => console.warn('SW registration failed', err));
+  });
+}
+
+// Prompt if offline
+window.addEventListener('load', () => {
+  if (!navigator.onLine) {
+    console.log('현재 오프라인 상태입니다.');
+  }
+});
+</script>
 </html>

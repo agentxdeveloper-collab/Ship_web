@@ -1,0 +1,17 @@
+{
+  "name": "AFT 배 자리 확인",
+  "short_name": "AFT 자리",
+  "start_url": "/",
+  "scope": "/",
+  "display": "standalone",
+  "background_color": "#0066cc",
+  "theme_color": "#0066cc",
+  "description": "선상낚시 배 예약 가능 여부를 빠르게 확인하고 날씨, 수온 정보를 조회하는 PWA",
+  "lang": "ko-KR",
+  "icons": [
+    { "src": "/img/icons/icon-192.png", "sizes": "192x192", "type": "image/png" },
+    { "src": "/img/icons/icon-512.png", "sizes": "512x512", "type": "image/png" },
+    { "src": "/img/icons/maskable-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any maskable" },
+    { "src": "/img/icons/maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any maskable" }
+  ]
+}

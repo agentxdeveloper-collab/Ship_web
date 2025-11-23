@@ -186,42 +186,38 @@
   
   @media (max-width:768px){
     .results-section { padding:0 8px; }
-    .table-wrapper { padding:12px; border-radius:12px; overflow-x:visible; }
+    .table-wrapper { padding:12px; border-radius:12px; overflow:visible; }
     #results-table { min-width:0; }
     #results-table thead { display:none; }
-    #results-table,
-    #results-table tbody,
-    #results-table tr,
-    #results-table td {
-      display:block;
-      width:100%;
-    }
     #results-table tr {
-      margin-bottom:16px;
+      display:block;
+      margin:14px 0 18px;
       border:1px solid #e5e7eb;
-      border-radius:12px;
-      padding:12px;
+      border-radius:14px;
       background:#fff;
+      padding:10px 10px 4px;
+      box-shadow:0 2px 6px rgba(0,0,0,0.04);
     }
     #results-table td {
-      border:0 !important;
-      padding:10px 0;
-      text-align:left !important;
+      display:flex;
+      align-items:flex-start;
+      gap:8px;
+      border:0!important;
+      padding:5px 4px;
       position:relative;
-      padding-left:110px;
-      min-height:32px;
+      width:100%;
+      box-sizing:border-box;
     }
     #results-table td:before {
       content:attr(data-label);
-      position:absolute;
-      left:0;
-      width:100px;
+      flex:0 0 90px;
       font-weight:600;
       color:#374151;
       font-size:13px;
     }
+    #results-table td span.status-badge { margin-top:2px; }
     .status-badge { font-size:12px; padding:4px 12px; }
-    .btn-popup { min-width:120px; padding:8px 12px; font-size:13px; }
+    .btn-popup { min-width:100px; padding:8px 10px; font-size:13px; }
   }
 
   #results-table thead th {
@@ -236,7 +232,7 @@
   }
 
   #results-table tbody td {
-    padding: 12px;
+    padding: 5px;
     border-bottom: 1px solid #f3f4f6;
     font-size: 14px;
     color: #4b5563;
@@ -394,8 +390,21 @@
   .calendar-btn{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
   .calendar-btn svg{width:28px;height:28px;color:#374151}
   .form-control{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:22px;box-sizing:border-box;outline:none}
-  .form-control:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 1px #0d9488}
+  .form-control:focus{outline:none;border-color:#0d9488;box-sㄴhadow:0 0 0 1px #0d9488}
   .date-input{height:48px}
+
+  /* 날짜 행 반응형 정리 */
+  .date-row{display:flex;gap:8px;align-items:flex-end;flex-wrap:wrap}
+  .date-row .date-col{flex:1 1 280px;min-width:0}
+  .date-row .fp-wrap{width:100%}
+  @media (max-width:768px){
+    .date-row{align-items:center;flex-wrap:nowrap}
+    .date-row .date-col{flex:0 0 auto}
+    .date-row .date-col label{display:block;font-size:16px;margin-bottom:4px}
+    .form-control{font-size:18px;width:160px}
+    .calendar-btn{width:40px;height:40px}
+    .btn-search{flex:0 0 auto;height:44px;padding:0 18px;white-space:nowrap;margin-left:8px}
+  }
 </style>
 
 <!-- 통합 필터 카드 -->
@@ -433,10 +442,10 @@
     </div>
 
     <!-- 날짜 입력: Flatpickr 단일 컴포넌트 (간격 축소) -->
-    <div style="display:flex; gap:8px; align-items:flex-end;">
-      <div style="flex:0 0 auto; width:307px;">
+    <div class="date-row">
+      <div class="date-col">
         <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="date">날짜선택</label>
-        <div class="fp-wrap" style="width:307px;">
+        <div class="fp-wrap">
           <input id="date" class="form-control date-input flatpickr-input" type="text" placeholder="YYYY-MM-DD" required style="padding-top:5px; padding-bottom:5px;">
           <button type="button" id="open-cal" class="calendar-btn" aria-label="달력 열기">
             <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
@@ -446,7 +455,7 @@
           </button>
         </div>
       </div>
-      <div style="flex:0 0 auto;">
+      <div style="flex:0 0 auto;padding-top: 30px;">
         <button id="searchBtn" type="submit" class="btn-search">🔍 조회</button>
       </div>
     </div>
@@ -523,12 +532,12 @@
             <td data-label="등록된 배">{{ entry.registered_name or '-' }}</td>
             <td data-label="어종">{{ entry.fish or '-' }}</td>
             <td data-label="배 이름" style="font-weight: 600;">{{ entry.ship_name or '-' }} {% if entry.tide %}({{ entry.tide }}){% endif %}</td>
-            <td data-label="상태" style="text-align: center;">
+            <td data-label="상태">
               <span class="status-badge {{ 'badge-available' if is_open else 'badge-closed' if is_closed else 'badge-maintenance' }}">
                 {{ show_status }}
               </span>
             </td>
-            <td data-label="남은자리" style="text-align: center;">
+            <td data-label="남은자리">
               {{ 0 if is_closed else (entry.available if entry.available is not none else '-') }}
             </td>
             <td data-label="URL">
@@ -540,7 +549,7 @@
                 -
               {% endif %}
             </td>
-            <td data-label="날씨/물때" style="text-align: center;">
+            <td data-label="날씨/물때" >
               <button type="button" class="btn-popup" data-city="{{ entry.city or '' }}" data-port="{{ entry.port or '' }}" data-date="{{ year }}-{{ '%02d'|format(month) }}-{{ '%02d'|format(day) }}">
                 팝업 보기
               </button>
@@ -737,32 +746,38 @@
 
         // 지역
         const tdCity = document.createElement('td');
+        tdCity.setAttribute('data-label', '지역');
         tdCity.textContent = r.city;
         tr.appendChild(tdCity);
 
         // 항구
         const tdPort = document.createElement('td');
+        tdPort.setAttribute('data-label', '항구');
         tdPort.textContent = r.port;
         tr.appendChild(tdPort);
 
         // 등록된 배
         const tdRN = document.createElement('td');
+        tdRN.setAttribute('data-label', '등록된 배');
         tdRN.textContent = r.registered_name || '-';
         tr.appendChild(tdRN);
 
         // 어종
         const tdFish = document.createElement('td');
+        tdFish.setAttribute('data-label', '어종');
         tdFish.textContent = r.fish || '-';
         tr.appendChild(tdFish);
 
         // 배 이름
         const tdShip = document.createElement('td');
+        tdShip.setAttribute('data-label', '배 이름');
         tdShip.style.fontWeight = '600';
         tdShip.textContent = r.ship_name || '-';
         tr.appendChild(tdShip);
 
         // 상태 (badge 스타일 적용)
         const tdStatus = document.createElement('td');
+        tdStatus.setAttribute('data-label', '상태');
         tdStatus.style.textAlign = 'center';
         const badge = document.createElement('span');
         badge.className = 'status-badge';
@@ -784,12 +799,14 @@
 
         // 남은자리
         const tdAvail = document.createElement('td');
+        tdAvail.setAttribute('data-label', '남은자리');
         tdAvail.style.textAlign = 'center';
         tdAvail.textContent = (r.status_class === 'closed') ? '0' : (r.available != null ? String(r.available) : '-');
         tr.appendChild(tdAvail);
 
         // URL
         const tdUrl = document.createElement('td');
+        tdUrl.setAttribute('data-label', 'URL');
         if (r.url) {
           const link = document.createElement('a');
           link.href = r.url;
@@ -805,6 +822,7 @@
 
         // 날씨/물때 팝업
         const tdWeather = document.createElement('td');
+        tdWeather.setAttribute('data-label', '날씨/물때');
         tdWeather.style.textAlign = 'center';
         const popupBtn = document.createElement('button');
         popupBtn.className = 'btn-popup';

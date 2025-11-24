@@ -844,6 +844,10 @@ def api_tide_graph():
     pc_view = soup.select_one('div.pc_txt_view')
     pc_html = pc_view.decode() if pc_view else ''
 
+    # 모바일 요약 테이블
+    mo_view = soup.select_one('div.mo_txt_view')
+    mo_html = mo_view.decode() if mo_view else ''
+
     # 차트 컨테이너와 스크립트(바로 뒤에 오는 inline script)
     chart_div = soup.select_one('#chartdiv')
     chart_html = ''
@@ -883,6 +887,7 @@ def api_tide_graph():
             return script_text
 
         pc_html = absolutize_urls(pc_html)
+        mo_html = absolutize_urls(mo_html)
         chart_html = absolutize_urls(chart_html)
         if script_text:
             script_text = absolutize_script_urls(script_text)
@@ -890,6 +895,7 @@ def api_tide_graph():
     return jsonify({
         'success': True,
         'pc_html': pc_html,
+        'mo_html': mo_html,
         'chart_html': chart_html,
         'script': script_text,
         'source_url': source_url,

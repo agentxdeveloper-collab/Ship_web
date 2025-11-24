@@ -43,13 +43,25 @@
   .result-right{flex:1;min-width:0;background:#fff;overflow:visible}
   .graph-frame{display:block;width:100%;height:800px;border:0;background:#0b1320}
   .graph-panel{padding:8px;background:#fff;height:800px;overflow:visible}
+  
+  /* 모바일 조석 정보 테이블 */
+  .mo_txt_view{display:none}
+  .mo_txt_view table{width:100%;background-color:#f6f6f6;text-align:center;border:1px solid #DEDEDE;border-collapse:collapse}
+  .mo_txt_view td{border:1px solid #DEDEDE;padding:12px 8px}
+  .mo_txt_view td:first-child{width:30%;background-color:#f6f6f6;font-weight:600;color:#374151}
+  .mo_txt_view td:last-child{width:70%;background-color:#ffffff;font-size:16px;line-height:1.6}
 
   @media (max-width: 1024px){
     .result-split{flex-direction:column;max-width:100%;padding:8px}
     .result-left{border-right:0;border-bottom:1px solid #eef2f7}
     .result-right{flex:1;min-width:0;max-width:none}
     .graph-frame{height:520px}
-    .graph-panel{height:auto;min-height:400px}
+    .graph-panel{height:auto;min-height:400px;padding:4px}
+    /* 모바일에서 조석 정보 테이블 표시 */
+    .mo_txt_view{display:block;margin-bottom:16px}
+    /* result-header 모바일 대응 */
+    .result-header{width:100%;max-width:100%;border-radius:12px 12px 0 0}
+    #tide-result{width:100%!important;max-width:100%!important;transform:none!important;left:0!important;position:relative!important}
   }
   
   @media (max-width:768px){
@@ -71,11 +83,25 @@
     /* 모바일에서 날짜 입력/달력 버튼과 동일한 높이(40px)로 정렬 */
     .date-input{height:40px}
     .btn-fetch{flex:0 0 auto;height:40px;padding:0 16px;white-space:nowrap;margin-left:8px;display:inline-flex;align-items:center}
+    /* tide-table 모바일 카드 레이아웃 */
     #tide-table thead{display:none}
-    #tide-table,#tide-table tbody,#tide-table tr,#tide-table td{display:block;width:100%}
-    #tide-table tr{margin-bottom:12px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;background:#fff}
-    #tide-table td{border:0!important;padding:8px 0;text-align:left!important;position:relative;padding-left:100px}
-    #tide-table td:before{content:attr(data-label);position:absolute;left:0;width:90px;font-weight:600;color:#374151;font-size:13px}
+    #tide-table,#tide-table tbody,#tide-table tr,#tide-table td{display:block;width:100%;box-sizing:border-box}
+    #tide-table tbody{width:100%;overflow:visible}
+    #tide-table tr{margin-bottom:12px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;background:#fff;box-shadow:0 2px 4px rgba(0,0,0,0.05);max-width:100%;box-sizing:border-box}
+    #tide-table td{border:0!important;padding:8px 4px;text-align:left!important;display:flex;align-items:flex-start;gap:8px;min-height:24px;box-sizing:border-box;max-width:100%;word-break:break-word}
+    #tide-table td:before{content:attr(data-label);flex:0 0 80px;font-weight:600;color:#374151;font-size:13px;padding-top:0}
+    #tide-table td img{flex-shrink:0}
+    /* 로딩/빈 행은 flex 해제 */
+    #tide-table .loading-row td,#tide-table .empty-row td{display:block;text-align:center!important;padding:20px}
+    #tide-table .loading-row td:before,#tide-table .empty-row td:before{display:none}
+    /* 모바일 조석 정보 테이블 스타일 개선 */
+    .mo_txt_view table{font-size:14px}
+    .mo_txt_view td{padding:10px 8px!important}
+    .mo_txt_view td:first-child{font-size:13px}
+    .mo_txt_view td:last-child{font-size:15px;line-height:1.8}
+    /* graph-panel SVG 모바일 대응 */
+    .graph-panel{padding:4px;overflow-x:auto}
+    .graph-panel svg{max-width:100%;height:auto!important}
   }
 
   /* 날짜 행 공통 레이아웃 (status.html과 동일, 데스크톱에서도 한 줄 유지) */
@@ -135,6 +161,9 @@
     </div>
     <div class="result-split">
       <div class="result-left">
+        <!-- 모바일 조석 정보 -->
+        <div class="mo_txt_view"></div>
+        
         <table id="tide-table">
           <thead>
             <tr>
@@ -262,6 +291,14 @@ document.addEventListener('DOMContentLoaded', () => {
       if (!gresp.ok) throw new Error('그래프 정보를 불러올 수 없습니다.');
       const gdata = await gresp.json();
       if (!gdata.success) throw new Error(gdata.message || '그래프 파싱 실패');
+      
+      // 모바일 조석 정보 테이블 렌더링
+      const moView = document.querySelector('.mo_txt_view');
+      if (moView && gdata.mo_html) {
+        moView.innerHTML = gdata.mo_html;
+      }
+      
+      // PC 그래프 렌더링
       graphPanel.innerHTML = (gdata.pc_html || '') + (gdata.chart_html || '');
       if (gdata.script) {
         const se = document.createElement('script');

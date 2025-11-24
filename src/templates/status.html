@@ -218,6 +218,9 @@
     #results-table td span.status-badge { margin-top:2px; }
     .status-badge { font-size:12px; padding:4px 12px; }
     .btn-popup { min-width:100px; padding:8px 10px; font-size:13px; }
+    /* 빈 결과 행은 라벨/플렉스 제거하여 중앙 정렬 유지 */
+    #results-table td.no-results { display:block; text-align:center !important; padding:40px 12px; }
+    #results-table td.no-results:before { content:none; }
   }
 
   #results-table thead th {
@@ -390,7 +393,7 @@
   .calendar-btn{display:inline-flex;align-items:center;justify-content:center;width:48px;height:48px;border:1px solid #d1d5db;border-radius:8px;background:#fff;cursor:pointer}
   .calendar-btn svg{width:28px;height:28px;color:#374151}
   .form-control{width:100%;padding:12px 16px;border:1px solid #d1d5db;border-radius:8px;font-size:22px;box-sizing:border-box;outline:none}
-  .form-control:focus{outline:none;border-color:#0d9488;box-sㄴhadow:0 0 0 1px #0d9488}
+  .form-control:focus{outline:none;border-color:#0d9488;box-shadow:0 0 0 1px #0d9488}
   .date-input{height:48px}
 
   /* 날짜 행 반응형 정리 */
@@ -444,7 +447,7 @@
     <!-- 날짜 입력: Flatpickr 단일 컴포넌트 (간격 축소) -->
     <div class="date-row">
       <div class="date-col">
-        <label style="display:block; font-size:20px; font-weight:600; color:#6b7280; margin-bottom:8px;" for="date">날짜선택</label>
+        <label style="display:block; font-weight:600; color:#6b7280; margin-bottom:8px;" for="date">날짜선택</label>
         <div class="fp-wrap">
           <input id="date" class="form-control date-input flatpickr-input" type="text" placeholder="YYYY-MM-DD" required style="padding-top:5px; padding-bottom:5px;">
           <button type="button" id="open-cal" class="calendar-btn" aria-label="달력 열기">
@@ -455,7 +458,7 @@
           </button>
         </div>
       </div>
-      <div style="flex:0 0 auto;padding-top: 30px;">
+      <div style="flex:0 0 auto;padding-top: 35px;">
         <button id="searchBtn" type="submit" class="btn-search">🔍 조회</button>
       </div>
     </div>
@@ -558,8 +561,8 @@
         {% endfor %}
       {% else %}
         <tr>
-          <td colspan="9" style="padding: 40px; text-align: center; color: #9ca3af;">
-            조회 결과가 없습니다. 상단에서 지역과 날짜를 선택 후 조회하세요.
+          <td class="no-results" colspan="9" style="text-align: center; color: #9ca3af;">
+            조회 결과가 없습니다.<br>상단에서 지역과 날짜를 선택 후 조회하세요.
           </td>
         </tr>
       {% endif %}

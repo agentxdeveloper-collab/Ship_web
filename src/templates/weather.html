@@ -55,16 +55,37 @@
   @media (max-width:768px){
     .tide-container{padding:0 8px}
     .tide-card{padding:20px 16px;border-radius:12px}
-    .tide-form{flex-direction:column;gap:12px}
+    .tide-form{flex-direction:column;gap:12px;align-items:stretch}
     .form-group{min-width:0;width:100%}
+    /* 지역/항구 선택이 화면 밖으로 나가지 않도록 100% 폭 보장 */
+    .tide-form .form-group .form-control{width:100% !important;max-width:100%;box-sizing:border-box}
     .fp-wrap{width:100%}
     .date-input{width:100%}
+    /* status.html과 동일한 날짜 행 레이아웃 */
+    .date-row{align-items:center;flex-wrap:nowrap}
+    .date-row .date-col{flex:0 0 auto}
+    .date-row .date-col label{display:block;font-size:16px;margin-bottom:4px}
+    /* 날짜 입력 전용 폭 (선택박스에는 적용되지 않도록 범위 한정) */
+    .date-row .form-control{font-size:18px;width:160px}
+    .calendar-btn{width:40px;height:40px}
+    /* 모바일에서 날짜 입력/달력 버튼과 동일한 높이(40px)로 정렬 */
+    .date-input{height:40px}
+    .btn-fetch{flex:0 0 auto;height:40px;padding:0 16px;white-space:nowrap;margin-left:8px;display:inline-flex;align-items:center}
     #tide-table thead{display:none}
     #tide-table,#tide-table tbody,#tide-table tr,#tide-table td{display:block;width:100%}
     #tide-table tr{margin-bottom:12px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;background:#fff}
     #tide-table td{border:0!important;padding:8px 0;text-align:left!important;position:relative;padding-left:100px}
     #tide-table td:before{content:attr(data-label);position:absolute;left:0;width:90px;font-weight:600;color:#374151;font-size:13px}
   }
+
+  /* 날짜 행 공통 레이아웃 (status.html과 동일, 데스크톱에서도 한 줄 유지) */
+  .date-row{display:flex;gap:8px;align-items:center;flex-wrap:nowrap}
+  .date-row .date-col{flex:0 0 auto}
+  .date-row .fp-wrap{width:auto}
+  /* 데스크톱/태블릿: 날짜 입력 폭 축소해 조회 버튼을 오른쪽에 배치 */
+  .date-row .form-control{width:200px}
+  .date-row .calendar-btn{width:48px;height:48px}
+  .date-row .btn-fetch{height:48px;padding:0 18px;display:inline-flex;align-items:center;white-space:nowrap}
 </style>
 
 <div class="tide-container">
@@ -86,19 +107,23 @@
           <option value="">지역을 먼저 선택하세요</option>
         </select>
       </div>
-      <div class="form-group">
-        <label class="form-label" for="date">날짜</label>
-        <div class="fp-wrap">
-          <input id="date" class="form-control date-input" type="text" placeholder="YYYY-MM-DD" required />
-          <button type="button" id="open-cal" class="calendar-btn" aria-label="달력 열기">
-            <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
-              <rect x="3" y="4" width="18" height="18" rx="2"></rect>
-              <path d="M16 2v4M8 2v4M3 10h18"></path>
-            </svg>
-          </button>
+      <div class="date-row">
+        <div class="date-col">
+          <label class="form-label" for="date">날짜</label>
+          <div class="fp-wrap">
+            <input id="date" class="form-control date-input flatpickr-input" type="text" placeholder="YYYY-MM-DD" required />
+            <button type="button" id="open-cal" class="calendar-btn" aria-label="달력 열기">
+              <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+                <rect x="3" y="4" width="18" height="18" rx="2"></rect>
+                <path d="M16 2v4M8 2v4M3 10h18"></path>
+              </svg>
+            </button>
+          </div>
+        </div>
+        <div style="flex:0 0 auto; margin-top: 27px;">
+          <button type="submit" class="btn-fetch">조회</button>
         </div>
       </div>
-      <button type="submit" class="btn-fetch">조회</button>
     </form>
     <p class="note">※ 바다타임 week_container를 파싱하여 시간표를 구성합니다. 항구를 선택하면 자동으로 port_id를 매핑하여 조회합니다.</p>
   </div>

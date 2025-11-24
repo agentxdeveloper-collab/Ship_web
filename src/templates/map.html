@@ -8,7 +8,7 @@
     integrity="sha512-XQoYMqMTK8LvdxXYG3nZ448hOEQiglfqkJs1NOQV44cWnUrBc8PkAOcXy20w0vlaXaVUearIOBhiXZ5V3ynxwA=="
     crossorigin=""></script>
 <style>
-    #map { height: 80vh; }
+    #map { height: 80vh; margin-bottom: 30px; }
     .boat-marker {
         background-color: #009900;
         border: 1px solid #000;
@@ -92,7 +92,20 @@
 <div id="map"></div>
 
 <script>
-    var map = L.map('map').setView([35.9, 127.7], 7.5);
+    // PC와 모바일에서 시작 줌을 다르게 설정 (모바일은 한 단계 축소)
+    var baseZoom = 7.5;
+    var isMobile = window.matchMedia('(max-width: 768px)').matches;
+    var initialZoom = isMobile ? (baseZoom - 1) : baseZoom;
+    var map = L.map('map').setView([35.9, 127.7], initialZoom);
+
+    // 선택: 화면 크기 변경 시도에 맞춰 줌을 동기화 (원치 않으면 제거 가능)
+    window.addEventListener('resize', function(){
+        var nowMobile = window.matchMedia('(max-width: 768px)').matches;
+        var targetZoom = nowMobile ? (baseZoom - 1) : baseZoom;
+        if (Math.abs(map.getZoom() - targetZoom) > 0.1) {
+            map.setZoom(targetZoom);
+        }
+    });
 
     L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
         attribution: '&copy; <a href="https://www.openstreetmap.org/copyright">OpenStreetMap</a> contributors'

@@ -116,7 +116,8 @@
       <!-- 선박 목록 테이블 -->
       <form id="delete-form" method="post" action="{{ url_for('views.delete_boats') }}">
         <div class="table-container">
-        <table id="ships-table" class="modern-table">
+        <div class="table-wrapper">
+        <table id="results-table" class="modern-table">
           <thead>
             <tr>
               <th class="checkbox-col">
@@ -172,6 +173,7 @@
             {% endfor %}
           </tbody>
         </table>
+        </div>
       </div>
       </form>
     </div>
@@ -581,6 +583,15 @@
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
 }
 
+/* status 페이지와 일관된 테이블 래퍼 */
+.table-wrapper {
+  background: white;
+  border-radius: 12px;
+  padding: 20px;
+  box-shadow: 0 4px 20px rgba(0,0,0,0.08);
+  overflow-x: auto;
+}
+
 .modern-table {
   width: 100%;
   border-collapse: collapse;
@@ -610,13 +621,9 @@
 }
 
 
-/* 홀수/짝수 행 교차 배경색 */
-.ship-row:nth-child(odd) {
-  background: #fff;
-}
-.ship-row:nth-child(even) {
-  background: #f8fafc;
-}
+/* 홀수/짝수 행 교차 배경색 (데스크탑) */
+.modern-table tr.ship-row:nth-child(odd) { background:#ffffff; }
+.modern-table tr.ship-row:nth-child(even) { background:#f8fafc; }
 
 .ship-row:hover {
   background: #e0e7ef;
@@ -926,10 +933,28 @@
   .modern-table thead{display:none}
   .modern-table,.modern-table tbody,.modern-table tr,.modern-table td{display:block;width:100%}
   .modern-table tr{margin-bottom:12px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;background:#fff}
-  .modern-table td{border:0!important;padding:8px 0;text-align:left!important;position:relative;padding-left:100px;min-height:24px}
-  .modern-table td:before{content:attr(data-label);position:absolute;left:0;width:90px;font-weight:600;color:#374151;font-size:12px;line-height:1.5}
+  .modern-table td{border:0!important;padding:5px 0;text-align:left!important;position:relative;padding-left:100px;min-height:24px}
+  .modern-table td:before{content:attr(data-label);position:absolute;left:0;width:90px;font-weight:600;color:#374151;font-size:12px;line-height:1.5;padding-top:5px;padding-bottom:5px}
   .modern-table tr:hover{background:#f9fafb!important}
   .modern-table .checkbox-col{display:none!important}
+  /* results-table에선 status 페이지처럼 flex 라벨 사용 */
+  .table-wrapper{padding:12px;border-radius:12px;overflow:visible}
+  #results-table{width:100%;min-width:0;border-collapse:collapse}
+  #results-table thead{display:none}
+  #results-table tr{display:block;margin:12px 0 16px;border:1px solid #e5e7eb;border-radius:8px;padding:10px;background:#fff;box-shadow:0 2px 6px rgba(0,0,0,0.04)}
+  /* 모바일 얼룩말 패턴 */
+  #results-table tr.ship-row:nth-child(odd){background:#ffffff !important}
+  #results-table tr.ship-row:nth-child(even){background:#f8fafc !important}
+  #results-table td{display:flex;align-items:flex-start;gap:8px;border:0!important;padding:5px 4px;text-align:left!important;position:relative;width:100%;box-sizing:border-box;padding-left:4px;min-height:24px}
+  #results-table td:before{content:attr(data-label);position:static;left:auto;width:auto;flex:0 0 90px;font-weight:600;color:#374151;font-size:12px;line-height:1.5;padding-top:5px;padding-bottom:5px}
+  /* 텍스트가 세로로 끊어지지 않도록 가로 유지 */
+  #results-table td{word-break:keep-all;}
+  #results-table td.port-col{white-space:nowrap;}
+  #results-table td.region-col{white-space:nowrap;}
+  #results-table td .region-badge{white-space:nowrap;}
+  #results-table td.url-col a.detail-link{white-space:nowrap;}
+  #results-table tr:hover{background:#f9fafb!important}
+  #results-table .checkbox-col{display:none!important}
   
   /* 모달 */
   .modal-panel{width:95%;max-width:95vw}

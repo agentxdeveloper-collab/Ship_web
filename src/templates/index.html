@@ -62,8 +62,7 @@
   <!-- 탭 메뉴와 액션 버튼들 -->
   <div class="tab-actions-container">
         <div class="tab-menu">
-          <button type="button" class="tab-btn active" onclick="showTab('list')">
-            <!-- 목록보기 아이콘 -->
+          <button type="button" class="tab-btn active">
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <line x1="8" y1="6" x2="21" y2="6"/>
               <line x1="8" y1="12" x2="21" y2="12"/>
@@ -75,7 +74,6 @@
             목록보기
           </button>
           <button type="button" class="tab-btn" onclick="window.location.href='{{ url_for('views.map_page') }}'">
-            <!-- 지도보기 아이콘 -->
             <svg class="icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
               <polygon points="1,6 1,22 8,18 16,22 23,18 23,2 16,6 8,2 1,6"/>
               <line x1="8" y1="2" x2="8" y2="18"/>
@@ -83,7 +81,6 @@
             </svg>
             지도보기
           </button>
-          <!-- 탭 옆 총 척수 표시 (이동된 위치) -->
           <span class="ship-count-inline">총 <span id="shipCount">{{ boats|length }}</span>척</span>
         </div>
 
@@ -311,21 +308,21 @@
   margin-top: 16px;
 }
 
-/* 탭 메뉴 */
+
+/* tab-menu, tab-btn, ship-count-inline: map.html과 동일하게 */
 .tab-menu {
   display: flex;
   align-items: center;
   background: #f1f5f9;
   border-radius: 8px;
   padding: 2px 4px;
-  gap: 2px; /* 추가 */
+  gap: 2px;
 }
-
 .tab-btn {
   display: flex;
   align-items: center;
   gap: 6px;
-  padding: 8px 14px; /* 8px 16px -> 약간 축소 */
+  padding: 8px 14px;
   border: none;
   background: transparent;
   border-radius: 6px;
@@ -335,32 +332,24 @@
   cursor: pointer;
   transition: all 0.2s ease;
 }
-
 .tab-btn.active {
-  background: white;
+  background: #fff;
   color: #1e293b;
-  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
 }
-
-/* 아이콘 */
-.icon {
-  width: 16px;
-  height: 16px;
-  stroke-width: 2;
+.ship-count-inline {
+  display: inline-flex;
+  align-items: center;
+  padding: 6px 10px;
+  margin-left: 4px;
+  background: #e2e8f0;
+  color: #475569;
+  border-radius: 8px;
+  font-size: 13px;
+  font-weight: 500;
+  line-height: 1;
 }
-
-/* 탭 컨텐츠 */
-.tab-content-container {
-  position: relative;
-}
-
-.tab-content {
-  display: block;
-}
-
-.tab-content.hidden {
-  display: none;
-}
+.icon { width: 16px; height: 16px; stroke-width: 2; }
 
 /* 필터 섹션 */
 .filters-section {
@@ -925,9 +914,18 @@
   .action-right .qa-map{display:none}
   
   .tab-actions-container{flex-direction:column;align-items:stretch;gap:10px}
-  .tab-menu{width:100%;justify-content:space-between}
-  .tab-btn{font-size:13px;padding:8px 12px;flex:1}
-  .ship-count-inline{margin-left:auto;font-size:13px}
+  .tab-menu{width:auto;min-width:0;justify-content:flex-start;padding:4px 8px;gap:8px}
+  .tab-btn{font-size:13px;padding:8px 12px;flex:1 1 0}
+  .ship-count-inline{
+    margin-left:auto;
+    font-size:13px;
+    background:#e2e8f0;
+    color:#64748b;
+    border-radius:8px;
+    padding:4px 12px;
+    font-weight:500;
+    display:inline-block;
+  }
   
   .table-container{border-radius:8px}
   .modern-table thead{display:none}
@@ -953,6 +951,10 @@
   #results-table td.region-col{white-space:nowrap;}
   #results-table td .region-badge{white-space:nowrap;}
   #results-table td.url-col a.detail-link{white-space:nowrap;}
+  /* 선박명이 잘리지 않도록 ship-col 재정의 */
+  #results-table td.ship-col{width:auto!important;min-width:0!important;max-width:none!important;white-space:normal!important;overflow:visible!important;text-overflow:clip;padding-right:8px}
+  #results-table td.ship-col .ship-info{flex:1;min-width:0}
+  #results-table td.ship-col .ship-name{white-space:normal!important;overflow:visible;font-weight:600;color:#1e293b}
   #results-table tr:hover{background:#f9fafb!important}
   #results-table .checkbox-col{display:none!important}
   
